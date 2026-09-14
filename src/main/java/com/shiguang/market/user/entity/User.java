@@ -10,6 +10,12 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/**
+ * 用户实体
+ *
+ * @author gugu
+ */
+
 @Data
 @TableName("user")
 @Schema(description = "用户实体")
