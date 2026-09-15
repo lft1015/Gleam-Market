@@ -63,3 +63,43 @@ CREATE TABLE IF NOT EXISTS `lost_found`(
     INDEX idx_type (type),
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4 COMMENT='失物招领表';
+
+-- 会话表
+CREATE TABLE IF NOT EXISTS `conversation`(
+    id           BIGINT AUTO_INCREMENT COMMENT '会话ID',
+    item_id      BIGINT        NOT NULL        COMMENT '关联商品ID',
+    user1_id     BIGINT        NOT NULL        COMMENT '参与者A（较小ID）',
+    user2_id     BIGINT        NOT NULL        COMMENT '参与者B（较大ID）',
+    last_message VARCHAR(500)                  COMMENT '最后一条消息',
+    last_time    DATETIME                      COMMENT '最后消息时间',
+    unread_count INT           NOT NULL DEFAULT 0 COMMENT '接收方未读数',
+    create_time  DATETIME      NOT NULL        COMMENT '创建时间',
+    update_time  DATETIME      NOT NULL        COMMENT '更新时间',
+    deleted      TINYINT       DEFAULT 0       COMMENT '逻辑删除',
+    PRIMARY KEY (id),
+    FOREIGN KEY (item_id) REFERENCES `item`(id),
+    FOREIGN KEY (user1_id) REFERENCES `user`(id),
+    FOREIGN KEY (user2_id) REFERENCES `user`(id),
+    UNIQUE KEY uk_item_users(item_id, user1_id, user2_id),
+    INDEX idx_user1(user1_id),
+    INDEX idx_user2(user2_id)
+) ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4 COMMENT='会话表';
+
+-- 消息表
+CREATE TABLE IF NOT EXISTS `message`(
+    id              BIGINT AUTO_INCREMENT COMMENT '消息ID',
+    conversation_id BIGINT        NOT NULL        COMMENT '会话ID',
+    sender_id       BIGINT        NOT NULL        COMMENT '发送者ID',
+    receiver_id     BIGINT        NOT NULL        COMMENT '接收者ID',
+    content         TEXT          NOT NULL        COMMENT '消息内容',
+    type            VARCHAR(20)   NOT NULL DEFAULT 'TEXT' COMMENT '类型：TEXT/IMAGE',
+    is_read         TINYINT(1)    NOT NULL DEFAULT 0 COMMENT '已读标志',
+    create_time     DATETIME      NOT NULL        COMMENT '发送时间',
+    PRIMARY KEY (id),
+    FOREIGN KEY (conversation_id) REFERENCES `conversation`(id),
+    FOREIGN KEY (sender_id) REFERENCES `user`(id),
+    FOREIGN KEY (receiver_id) REFERENCES `user`(id),
+    INDEX idx_conversation(conversation_id),
+    INDEX idx_sender(sender_id),
+    INDEX idx_receiver(receiver_id)
+) ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4 COMMENT='消息表';
