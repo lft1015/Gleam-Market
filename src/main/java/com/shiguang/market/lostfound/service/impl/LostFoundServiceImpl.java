@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shiguang.market.common.BusinessException;
+import com.shiguang.market.lostfound.constant.LostFoundStatus;
 import com.shiguang.market.lostfound.dto.LostFoundQueryRequest;
 import com.shiguang.market.lostfound.dto.LostFoundResponse;
 import com.shiguang.market.lostfound.dto.PublishLostFoundRequest;
@@ -45,7 +46,7 @@ public class LostFoundServiceImpl implements LostFoundService {
         lostFound.setLostTime(request.getLostFoundTime());
         lostFound.setContact(request.getContact());
         lostFound.setImages(request.getImages());
-        lostFound.setStatus("PENDING");
+        lostFound.setStatus(LostFoundStatus.PENDING);
         lostFound.setCreateTime(LocalDateTime.now());
         lostFound.setUpdateTime(LocalDateTime.now());
         lostFoundMapper.insert(lostFound);

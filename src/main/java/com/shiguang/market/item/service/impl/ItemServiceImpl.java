@@ -5,9 +5,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shiguang.market.common.BusinessException;
+import com.shiguang.market.item.constant.ItemStatus;
 import com.shiguang.market.item.dto.ItemQueryRequest;
 import com.shiguang.market.item.dto.ItemResponse;
 import com.shiguang.market.item.dto.PublishItemRequest;
+import com.shiguang.market.item.dto.UpdateItemRequest;
 import com.shiguang.market.item.entity.Item;
 import com.shiguang.market.item.mapper.ItemMapper;
 import com.shiguang.market.item.service.ItemService;
@@ -44,7 +46,7 @@ public class ItemServiceImpl implements ItemService {
         item.setOriginalPrice(request.getOriginalPrice());
         item.setCategory(request.getCategory());
         item.setImages(request.getImages());
-        item.setStatus("ON_SALE");
+        item.setStatus(ItemStatus.ON_SALE);
         item.setViewCount(0);
         item.setCreateTime(LocalDateTime.now());
         item.setUpdateTime(LocalDateTime.now());
@@ -101,6 +103,12 @@ public class ItemServiceImpl implements ItemService {
         LambdaQueryWrapper<Item> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(StringUtils.hasText(request.getCategory()), Item::getCategory, request.getCategory());
         wrapper.eq(StringUtils.hasText(request.getStatus()), Item::getStatus, request.getStatus());
+        wrapper.and(StringUtils.hasText(request.getKeyword()),
+                w -> w.like(Item::getTitle, request.getKeyword())
+                      .or()
+                      .like(Item::getDescription, request.getKeyword()));
+        wrapper.ge(request.getMinPrice() != null, Item::getPrice, request.getMinPrice());
+        wrapper.le(request.getMaxPrice() != null, Item::getPrice, request.getMaxPrice());
         wrapper.orderByDesc(Item::getCreateTime);
 
         Page<Item> result = itemMapper.selectPage(page, wrapper);
@@ -113,5 +121,39 @@ public class ItemServiceImpl implements ItemService {
         }).toList());
 
         return responsePage;
+    }
+
+    /**
+     * 编辑商品（仅更新非空字段）
+     */
+    @Override
+    public void update(Long userId, Long itemId, UpdateItemRequest request) {
+        Item item = itemMapper.selectById(itemId);
+        if (item == null) {
+            throw new BusinessException(404, "商品不存在");
+        }
+        if (!item.getUserId().equals(userId)) {
+            throw new BusinessException(403, "只能编辑自己的商品");
+        }
+        if (StringUtils.hasText(request.getTitle())) {
+            item.setTitle(request.getTitle());
+        }
+        if (StringUtils.hasText(request.getDescription())) {
+            item.setDescription(request.getDescription());
+        }
+        if (request.getPrice() != null) {
+            item.setPrice(request.getPrice());
+        }
+        if (request.getOriginalPrice() != null) {
+            item.setOriginalPrice(request.getOriginalPrice());
+        }
+        if (StringUtils.hasText(request.getCategory())) {
+            item.setCategory(request.getCategory());
+        }
+        if (request.getImages() != null) {
+            item.setImages(request.getImages());
+        }
+        item.setUpdateTime(LocalDateTime.now());
+        itemMapper.updateById(item);
     }
 }

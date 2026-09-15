@@ -3,6 +3,8 @@ package com.shiguang.market.item.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 /**
  * 商品查询请求类
  *
@@ -23,4 +25,13 @@ public class ItemQueryRequest {
 
     @Schema(description = "商品状态")
     private String status;
+
+    @Schema(description = "关键字")
+    private String keyword;
+
+    @Schema(description = "最低价格")
+    private BigDecimal minPrice;
+
+    @Schema(description = "最高价格")
+    private BigDecimal maxPrice;
 }

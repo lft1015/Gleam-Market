@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.shiguang.market.item.dto.ItemQueryRequest;
 import com.shiguang.market.item.dto.ItemResponse;
 import com.shiguang.market.item.dto.PublishItemRequest;
+import com.shiguang.market.item.dto.UpdateItemRequest;
 
 /**
  * 商品服务接口
@@ -44,4 +45,13 @@ public interface ItemService {
      * @return 分页结果
      */
     IPage<ItemResponse> pageQuery(ItemQueryRequest request);
+
+    /**
+     * 编辑商品
+     *
+     * @param userId  用户ID
+     * @param itemId  商品ID
+     * @param request 编辑请求
+     */
+    void update(Long userId, Long itemId, UpdateItemRequest request);
 }

@@ -5,6 +5,7 @@ import com.shiguang.market.common.Result;
 import com.shiguang.market.item.dto.ItemQueryRequest;
 import com.shiguang.market.item.dto.ItemResponse;
 import com.shiguang.market.item.dto.PublishItemRequest;
+import com.shiguang.market.item.dto.UpdateItemRequest;
 import com.shiguang.market.item.service.ItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,16 @@ public class ItemController {
     @GetMapping
     public Result<IPage<ItemResponse>> list(ItemQueryRequest request) {
         return Result.ok(itemService.pageQuery(request));
+    }
+
+    // 编辑商品
+    @PutMapping("/{itemId}")
+    public Result<Void> update(@PathVariable Long itemId,
+                               @Valid @RequestBody UpdateItemRequest request) {
+        Long userId = (Long) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        itemService.update(userId, itemId, request);
+        return Result.ok();
     }
 
     // 查看商品详情
