@@ -139,3 +139,21 @@ CREATE TABLE IF NOT EXISTS `report`(
     INDEX idx_target(target_type, target_id),
     INDEX idx_status(status)
 ) ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4 COMMENT='举报表';
+
+-- 审核表
+CREATE TABLE IF NOT EXISTS `review`(
+                                       id            BIGINT       AUTO_INCREMENT  COMMENT '审核ID',
+                                       target_type   VARCHAR(20)  NOT NULL        COMMENT '审核类型：ITEM/LOST_FOUND',
+    target_id     BIGINT       NOT NULL        COMMENT '被审核对象ID',
+    submitter_id  BIGINT       NOT NULL        COMMENT '提交人ID',
+    reviewer_id   BIGINT                       COMMENT '审核人ID',
+    status        VARCHAR(20)  NOT NULL DEFAULT 'PENDING' COMMENT '审核状态：PENDING/APPROVED/REJECTED',
+    review_note   VARCHAR(500)                 COMMENT '审核备注',
+    create_time   DATETIME     NOT NULL        COMMENT '提交时间',
+    update_time   DATETIME     NOT NULL        COMMENT '审核时间',
+    PRIMARY KEY (id),
+    FOREIGN KEY (submitter_id) REFERENCES `user`(id),
+    FOREIGN KEY (reviewer_id) REFERENCES `user`(id),
+    INDEX idx_target(target_type, target_id),
+    INDEX idx_status(status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4 COMMENT='审核表';

@@ -12,6 +12,7 @@ import com.shiguang.market.lostfound.dto.PublishLostFoundRequest;
 import com.shiguang.market.lostfound.entity.LostFound;
 import com.shiguang.market.lostfound.mapper.LostFoundMapper;
 import com.shiguang.market.lostfound.service.LostFoundService;
+import com.shiguang.market.config.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -28,6 +29,7 @@ import java.time.LocalDateTime;
 public class LostFoundServiceImpl implements LostFoundService {
 
     private final LostFoundMapper lostFoundMapper;
+    private final ReviewService reviewService;
 
     /**
      * 发布失物招领
@@ -46,10 +48,12 @@ public class LostFoundServiceImpl implements LostFoundService {
         lostFound.setLostTime(request.getLostFoundTime());
         lostFound.setContact(request.getContact());
         lostFound.setImages(request.getImages());
-        lostFound.setStatus(LostFoundStatus.PENDING);
+        lostFound.setStatus(LostFoundStatus.PENDING_REVIEW);
         lostFound.setCreateTime(LocalDateTime.now());
         lostFound.setUpdateTime(LocalDateTime.now());
         lostFoundMapper.insert(lostFound);
+
+        reviewService.createReview(userId, "LOST_FOUND", lostFound.getId());
     }
 
     /**

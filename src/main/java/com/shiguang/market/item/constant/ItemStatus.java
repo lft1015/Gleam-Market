@@ -5,25 +5,37 @@ package com.shiguang.market.item.constant;
  *
  * @author gugu
  */
-public final class ItemStatus {
+public class ItemStatus {
 
-    private ItemStatus() {}
+    /**
+     * 待审核
+     */
+    public static final String PENDING_REVIEW = "PENDING_REVIEW";
 
-    /** 草稿 */
-    public static final String DRAFT = "DRAFT";
-
-    /** 审核中 */
-    public static final String REVIEWING = "REVIEWING";
-
-    /** 在售 */
+    /**
+     * 在售
+     */
     public static final String ON_SALE = "ON_SALE";
 
-    /** 交易中 */
+    /**
+     * 已拒绝
+     */
+    public static final String REJECTED = "REJECTED";
+
+    /**
+     * 交易中
+     */
     public static final String TRADING = "TRADING";
 
-    /** 已售出 */
+    /**
+     * 已售出
+     */
     public static final String SOLD = "SOLD";
 
-    /** 已下架 */
-    public static final String DELISTED = "DELISTED";
+    /**
+     * 已下架
+     */
+    public static final String OFF_SHELF = "OFF_SHELF";
+
+    private ItemStatus() {}
 }

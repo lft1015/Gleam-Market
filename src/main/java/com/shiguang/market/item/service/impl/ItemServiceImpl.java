@@ -13,6 +13,7 @@ import com.shiguang.market.item.dto.UpdateItemRequest;
 import com.shiguang.market.item.entity.Item;
 import com.shiguang.market.item.mapper.ItemMapper;
 import com.shiguang.market.item.service.ItemService;
+import com.shiguang.market.config.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -29,6 +30,7 @@ import java.time.LocalDateTime;
 public class ItemServiceImpl implements ItemService {
 
     private final ItemMapper itemMapper;
+    private final ReviewService reviewService;
 
     /**
      * 发布商品
@@ -46,11 +48,13 @@ public class ItemServiceImpl implements ItemService {
         item.setOriginalPrice(request.getOriginalPrice());
         item.setCategory(request.getCategory());
         item.setImages(request.getImages());
-        item.setStatus(ItemStatus.ON_SALE);
+        item.setStatus(ItemStatus.PENDING_REVIEW);
         item.setViewCount(0);
         item.setCreateTime(LocalDateTime.now());
         item.setUpdateTime(LocalDateTime.now());
         itemMapper.insert(item);
+
+        reviewService.createReview(userId, "ITEM", item.getId());
     }
 
     /**
