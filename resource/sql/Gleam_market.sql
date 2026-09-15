@@ -118,3 +118,24 @@ CREATE TABLE IF NOT EXISTS `favorite`(
     INDEX idx_item_id(item_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4 COMMENT='收藏表';
 
+-- 举报表
+CREATE TABLE IF NOT EXISTS `report`(
+    id          BIGINT       AUTO_INCREMENT  COMMENT '举报ID',
+    reporter_id BIGINT       NOT NULL        COMMENT '举报人ID',
+    target_type VARCHAR(20)  NOT NULL        COMMENT '举报类型：ITEM/LOST_FOUND/USER',
+    target_id   BIGINT       NOT NULL        COMMENT '被举报对象ID',
+    reason      VARCHAR(50)  NOT NULL        COMMENT '举报原因',
+    risk_level  VARCHAR(20)  NOT NULL DEFAULT 'MEDIUM' COMMENT '风险等级：LOW/MEDIUM/HIGH',
+    description TEXT                         COMMENT '举报描述',
+    status      VARCHAR(20)  NOT NULL DEFAULT 'PENDING' COMMENT '处理状态：PENDING/RESOLVED/DISMISSED',
+    reviewer_id BIGINT                       COMMENT '处理人ID',
+    review_note VARCHAR(500)                 COMMENT '处理备注',
+    create_time DATETIME     NOT NULL        COMMENT '举报时间',
+    update_time DATETIME     NOT NULL        COMMENT '处理时间',
+    PRIMARY KEY (id),
+    FOREIGN KEY (reporter_id) REFERENCES `user`(id),
+    FOREIGN KEY (reviewer_id) REFERENCES `user`(id),
+    INDEX idx_reporter(reporter_id),
+    INDEX idx_target(target_type, target_id),
+    INDEX idx_status(status)
+) ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4 COMMENT='举报表';
