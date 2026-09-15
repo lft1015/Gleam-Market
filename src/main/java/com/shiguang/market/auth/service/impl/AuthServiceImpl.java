@@ -88,4 +88,14 @@ public class AuthServiceImpl implements AuthService {
         response.setRole(user.getRole());
         return response;
     }
+
+    /**
+     * 退出登录
+     * TODO: 接入 Redis 后将当前 Token 加入黑名单
+     */
+    @Override
+    public void logout() {
+        // 无状态 JWT：服务端不维护会话，前端删除 Token 即完成退出
+        // 后续接入 Redis 后可在此处将 Token 加入黑名单，实现主动失效
+    }
 }

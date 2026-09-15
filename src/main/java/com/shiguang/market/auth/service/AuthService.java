@@ -24,4 +24,9 @@ public interface AuthService {
      * @return 登录响应
      */
     LoginResponse login(LoginRequest request);
+
+    /**
+     * 退出登录
+     */
+    void logout();
 }
