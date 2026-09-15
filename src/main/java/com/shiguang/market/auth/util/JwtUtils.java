@@ -23,7 +23,7 @@ public class JwtUtils {
 
     /**
      * 密钥（Base64 编码，至少 256 位）
-     * 生产环境应放到 application.properties 中
+     * 生产环境应放到 application.yml 中
      */
     private static final String SECRET = "YourVeryLongSecretKeyForJWTThatIsAtLeast256BitsLongAndEncodedInBase64==";
 
