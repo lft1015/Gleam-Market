@@ -39,7 +39,7 @@ public class SecurityConfig {
      * 安装过滤链
      */
     @Bean
-    public SecurityFilterChain springSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)  // 禁用 CSRF 保护（前后端项目采用 JWT 认证）
 
