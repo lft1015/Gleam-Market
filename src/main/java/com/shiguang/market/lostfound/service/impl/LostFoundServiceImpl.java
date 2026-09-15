@@ -100,6 +100,13 @@ public class LostFoundServiceImpl implements LostFoundService {
         Page<LostFound> page = new Page<>(request.getPage(), request.getSize());
         LambdaQueryWrapper<LostFound> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(StringUtils.hasText(request.getType()), LostFound::getType, request.getType());
+        wrapper.and(StringUtils.hasText(request.getKeyword()),
+                w -> w.like(LostFound::getTitle, request.getKeyword())
+                      .or()
+                      .like(LostFound::getDescription, request.getKeyword()));
+        wrapper.eq(StringUtils.hasText(request.getLocation()), LostFound::getLocation, request.getLocation());
+        wrapper.ge(request.getStartTime() != null, LostFound::getLostTime, request.getStartTime());
+        wrapper.le(request.getEndTime() != null, LostFound::getLostTime, request.getEndTime());
         wrapper.orderByDesc(LostFound::getCreateTime);
 
         Page<LostFound> result = lostFoundMapper.selectPage(page, wrapper);
