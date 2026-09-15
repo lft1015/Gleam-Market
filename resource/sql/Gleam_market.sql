@@ -103,3 +103,18 @@ CREATE TABLE IF NOT EXISTS `message`(
     INDEX idx_sender(sender_id),
     INDEX idx_receiver(receiver_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4 COMMENT='消息表';
+
+-- 收藏表
+CREATE TABLE IF NOT EXISTS `favorite`(
+    id          BIGINT   AUTO_INCREMENT  COMMENT '收藏ID',
+    user_id     BIGINT   NOT NULL        COMMENT '用户ID',
+    item_id     BIGINT   NOT NULL        COMMENT '商品ID',
+    create_time DATETIME NOT NULL        COMMENT '收藏时间',
+    PRIMARY KEY (id),
+    FOREIGN KEY (user_id) REFERENCES `user`(id),
+    FOREIGN KEY (item_id) REFERENCES `item`(id),
+    UNIQUE KEY uk_user_item(user_id, item_id),
+    INDEX idx_user_id(user_id),
+    INDEX idx_item_id(item_id)
+) ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4 COMMENT='收藏表';
+
