@@ -1,4 +1,4 @@
-package com.shiguang.market.config.review.constant;
+package com.shiguang.market.review.constant;
 
 import java.io.Serial;
 

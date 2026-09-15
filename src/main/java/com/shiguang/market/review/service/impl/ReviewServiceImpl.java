@@ -1,4 +1,4 @@
-package com.shiguang.market.config.review.service.impl;
+package com.shiguang.market.review.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -11,12 +11,12 @@ import com.shiguang.market.item.mapper.ItemMapper;
 import com.shiguang.market.lostfound.constant.LostFoundStatus;
 import com.shiguang.market.lostfound.entity.LostFound;
 import com.shiguang.market.lostfound.mapper.LostFoundMapper;
-import com.shiguang.market.config.review.constant.ReviewStatus;
-import com.shiguang.market.config.review.dto.ReviewDecisionRequest;
-import com.shiguang.market.config.review.dto.ReviewResponse;
-import com.shiguang.market.config.review.entity.Review;
-import com.shiguang.market.config.review.mapper.ReviewMapper;
-import com.shiguang.market.config.review.service.ReviewService;
+import com.shiguang.market.review.constant.ReviewStatus;
+import com.shiguang.market.review.dto.ReviewDecisionRequest;
+import com.shiguang.market.review.dto.ReviewResponse;
+import com.shiguang.market.review.entity.Review;
+import com.shiguang.market.review.mapper.ReviewMapper;
+import com.shiguang.market.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;

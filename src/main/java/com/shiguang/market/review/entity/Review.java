@@ -1,24 +1,32 @@
-package com.shiguang.market.config.review.dto;
+package com.shiguang.market.review.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.io.Serial;
 import java.time.LocalDateTime;
-
 /**
- * 审核响应
+ * 审核记录
  *
  * @author gugu
  */
 @Data
-@Schema(description = "审核响应")
-public class ReviewResponse {
+@TableName("review")
+@Schema(description = "审核实体类")
+public class Review {
 
+    @Serial
+    private static final long serialVersionUID = 1L;
+
+    @TableId(type = IdType.AUTO)
     @Schema(description = "审核ID")
     private Long id;
 
-    @Schema(description = "审核类型")
+    @Schema(description = "审核类型：ITEM/LOST_FOUND")
     private String targetType;
 
     @Schema(description = "被审核对象ID")

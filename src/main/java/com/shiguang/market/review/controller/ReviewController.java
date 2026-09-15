@@ -1,10 +1,10 @@
-package com.shiguang.market.config.review.controller;
+package com.shiguang.market.review.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.shiguang.market.common.Result;
-import com.shiguang.market.config.review.dto.ReviewDecisionRequest;
-import com.shiguang.market.config.review.dto.ReviewResponse;
-import com.shiguang.market.config.review.service.ReviewService;
+import com.shiguang.market.review.dto.ReviewDecisionRequest;
+import com.shiguang.market.review.dto.ReviewResponse;
+import com.shiguang.market.review.service.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;

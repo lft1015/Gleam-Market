@@ -1,4 +1,4 @@
-package com.shiguang.market.config.review.dto;
+package com.shiguang.market.review.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;

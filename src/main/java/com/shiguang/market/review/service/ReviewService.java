@@ -1,8 +1,8 @@
-package com.shiguang.market.config.review.service;
+package com.shiguang.market.review.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.shiguang.market.config.review.dto.ReviewDecisionRequest;
-import com.shiguang.market.config.review.dto.ReviewResponse;
+import com.shiguang.market.review.dto.ReviewDecisionRequest;
+import com.shiguang.market.review.dto.ReviewResponse;
 
 /**
  * 审核服务接口

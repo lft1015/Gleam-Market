@@ -1,7 +1,7 @@
-package com.shiguang.market.config.review.mapper;
+package com.shiguang.market.review.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.shiguang.market.config.review.entity.Review;
+import com.shiguang.market.review.entity.Review;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
