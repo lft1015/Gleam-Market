@@ -1,5 +1,7 @@
 package com.shiguang.market.item.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.shiguang.market.item.dto.ItemQueryRequest;
 import com.shiguang.market.item.dto.ItemResponse;
 import com.shiguang.market.item.dto.PublishItemRequest;
 
@@ -34,4 +36,12 @@ public interface ItemService {
      * @param status 更新商品状态
      */
     void updateStatus(Long userId, Long itemId, String status);
+
+    /**
+     * 分页查询商品
+     *
+     * @param request 查询请求
+     * @return 分页结果
+     */
+    IPage<ItemResponse> pageQuery(ItemQueryRequest request);
 }

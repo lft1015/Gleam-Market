@@ -1,6 +1,7 @@
 package com.shiguang.market.item.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -13,42 +14,44 @@ import java.time.LocalDateTime;
  */
 
 @Data
+@Schema(description = "商品响应类")
 public class ItemResponse {
-    // 商品ID
+
+    @Schema(description = "商品ID")
     private Long id;
 
-    //商品用户ID
+    @Schema(description = "用户ID")
     private Long userId;
 
-    // 商品标题
+    @Schema(description = "商品标题")
     private String title;
 
-    // 商品描述
+    @Schema(description = "商品描述")
     private String description;
 
-    // 商品价格
+    @Schema(description = "商品价格")
     private BigDecimal price;
 
-    // 商品原价
+    @Schema(description = "商品原价")
     private BigDecimal originalPrice;
 
-    // 商品分类
+    @Schema(description = "商品分类")
     private String category;
 
-    //商品状态
+    @Schema(description = "商品状态")
     private String status;
 
-    // 商品图片
+    @Schema(description = "商品图片")
     private String images;
 
-    //商品浏览量
+    @Schema(description = "浏览量")
     private Integer viewCount;
 
-    // 商品创建时间
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Schema(description = "创建时间")
     private LocalDateTime createTime;
 
-    // 商品更新时间
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Schema(description = "更新时间")
     private LocalDateTime updateTime;
 }

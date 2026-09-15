@@ -1,5 +1,8 @@
 package com.shiguang.market.item.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -11,18 +14,27 @@ import java.math.BigDecimal;
  */
 
 @Data
+@Schema(description = "发布商品请求类")
 public class PublishItemRequest {
 
-    // 商品标题
+    @NotBlank(message = "标题不能为空")
+    @Schema(description = "商品标题")
     private String title;
-    // 商品描述
+
+    @Schema(description = "商品描述")
     private String description;
-    // 商品价格
+
+    @NotNull(message = "价格不能为空")
+    @Schema(description = "商品价格")
     private BigDecimal price;
-    // 商品原价
+
+    @Schema(description = "商品原价")
     private BigDecimal originalPrice;
-    // 商品分类
+
+    @NotBlank(message = "分类不能为空")
+    @Schema(description = "商品分类")
     private String category;
-    // 商品图片
+
+    @Schema(description = "商品图片")
     private String images;
 }

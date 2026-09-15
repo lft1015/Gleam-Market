@@ -1,7 +1,11 @@
 package com.shiguang.market.item.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shiguang.market.common.BusinessException;
+import com.shiguang.market.item.dto.ItemQueryRequest;
 import com.shiguang.market.item.dto.ItemResponse;
 import com.shiguang.market.item.dto.PublishItemRequest;
 import com.shiguang.market.item.entity.Item;
@@ -9,6 +13,7 @@ import com.shiguang.market.item.mapper.ItemMapper;
 import com.shiguang.market.item.service.ItemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 
@@ -41,8 +46,8 @@ public class ItemServiceImpl implements ItemService {
         item.setImages(request.getImages());
         item.setStatus("ON_SALE");
         item.setViewCount(0);
-        item.setUpdateTime(LocalDateTime.now());
         item.setCreateTime(LocalDateTime.now());
+        item.setUpdateTime(LocalDateTime.now());
         itemMapper.insert(item);
     }
 
@@ -82,5 +87,31 @@ public class ItemServiceImpl implements ItemService {
         item.setStatus(status);
         item.setUpdateTime(LocalDateTime.now());
         itemMapper.updateById(item);
+    }
+
+    /**
+     * 分页查询商品
+     *
+     * @param request 查询请求
+     * @return 分页结果
+     */
+    @Override
+    public IPage<ItemResponse> pageQuery(ItemQueryRequest request) {
+        Page<Item> page = new Page<>(request.getPage(), request.getSize());
+        LambdaQueryWrapper<Item> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StringUtils.hasText(request.getCategory()), Item::getCategory, request.getCategory());
+        wrapper.eq(StringUtils.hasText(request.getStatus()), Item::getStatus, request.getStatus());
+        wrapper.orderByDesc(Item::getCreateTime);
+
+        Page<Item> result = itemMapper.selectPage(page, wrapper);
+
+        Page<ItemResponse> responsePage = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
+        responsePage.setRecords(result.getRecords().stream().map(item -> {
+            ItemResponse response = new ItemResponse();
+            BeanUtil.copyProperties(item, response);
+            return response;
+        }).toList());
+
+        return responsePage;
     }
 }
