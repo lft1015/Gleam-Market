@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS `user`(
     avatar VARCHAR(255) COMMENT '头像URL',
     role VARCHAR(20) NOT NULL DEFAULT 'USER' COMMENT '角色',
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' COMMENT '状态',
+    ban_until DATETIME COMMENT '封禁截止时间（NULL=永久封禁）',
     create_time DATETIME NOT NULL COMMENT '创建时间',
     update_time DATETIME NOT NULL COMMENT '更新时间',
     deleted TINYINT DEFAULT 0 COMMENT '逻辑删除',
@@ -44,9 +45,9 @@ CREATE TABLE IF NOT EXISTS `item`(
 
 -- 失物招领表
 CREATE TABLE IF NOT EXISTS `lost_found`(
-                                          id          BIGINT       AUTO_INCREMENT  COMMENT 'ID',
-                                          user_id     BIGINT       NOT NULL         COMMENT '发布者ID',
-                                          title       VARCHAR(100) NOT NULL         COMMENT '物品名称',
+    id          BIGINT       AUTO_INCREMENT  COMMENT 'ID',
+    user_id     BIGINT       NOT NULL         COMMENT '发布者ID',
+    title       VARCHAR(100) NOT NULL         COMMENT '物品名称',
     description TEXT                          COMMENT '详细描述',
     type        VARCHAR(20)  NOT NULL         COMMENT '类型：LOST寻物/FOUND招领',
     location    VARCHAR(200) NOT NULL         COMMENT '丢失/捡到地点',
@@ -142,8 +143,8 @@ CREATE TABLE IF NOT EXISTS `report`(
 
 -- 审核表
 CREATE TABLE IF NOT EXISTS `review`(
-                                       id            BIGINT       AUTO_INCREMENT  COMMENT '审核ID',
-                                       target_type   VARCHAR(20)  NOT NULL        COMMENT '审核类型：ITEM/LOST_FOUND',
+    id            BIGINT       AUTO_INCREMENT  COMMENT '审核ID',
+    target_type   VARCHAR(20)  NOT NULL        COMMENT '审核类型：ITEM/LOST_FOUND',
     target_id     BIGINT       NOT NULL        COMMENT '被审核对象ID',
     submitter_id  BIGINT       NOT NULL        COMMENT '提交人ID',
     reviewer_id   BIGINT                       COMMENT '审核人ID',
@@ -156,4 +157,54 @@ CREATE TABLE IF NOT EXISTS `review`(
     FOREIGN KEY (reviewer_id) REFERENCES `user`(id),
     INDEX idx_target(target_type, target_id),
     INDEX idx_status(status)
-    ) ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4 COMMENT='审核表';
+) ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4 COMMENT='审核表';
+
+-- 管理员操作日志表
+CREATE TABLE IF NOT EXISTS `audit_log`(
+    id          BIGINT        AUTO_INCREMENT  COMMENT '日志ID',
+    admin_id    BIGINT        NOT NULL        COMMENT '操作管理员ID',
+    action      VARCHAR(50)   NOT NULL        COMMENT '操作类型',
+    target_type VARCHAR(20)   NOT NULL        COMMENT '操作对象类型',
+    target_id   BIGINT                        COMMENT '操作对象ID',
+    detail      VARCHAR(1000)                 COMMENT '操作详情',
+    create_time DATETIME      NOT NULL        COMMENT '操作时间',
+    PRIMARY KEY (id),
+    FOREIGN KEY (admin_id) REFERENCES `user`(id),
+    INDEX idx_admin(admin_id),
+    INDEX idx_create_time(create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4 COMMENT='管理员操作日志表';
+
+-- 媒体资源表（图片/附件元数据）
+CREATE TABLE IF NOT EXISTS `media`(
+    id          BIGINT        AUTO_INCREMENT  COMMENT '媒体ID',
+    target_type VARCHAR(20)   NOT NULL        COMMENT '关联对象类型：ITEM/LOST_FOUND/MESSAGE',
+    target_id   BIGINT        NOT NULL        COMMENT '关联对象ID',
+    url         VARCHAR(500)  NOT NULL        COMMENT '资源URL',
+    type        VARCHAR(20)   NOT NULL        COMMENT '媒体类型：IMAGE/DOCUMENT',
+    sort_order  INT           NOT NULL DEFAULT 0 COMMENT '排序',
+    create_time DATETIME      NOT NULL        COMMENT '创建时间',
+    PRIMARY KEY (id),
+    INDEX idx_target(target_type, target_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4 COMMENT='媒体资源表';
+
+-- 失物认领申请表
+CREATE TABLE IF NOT EXISTS `claim`(
+    id              BIGINT        AUTO_INCREMENT  COMMENT '认领ID',
+    lost_found_id   BIGINT        NOT NULL        COMMENT '失物招领ID',
+    claimant_id     BIGINT        NOT NULL        COMMENT '认领人ID',
+    message         VARCHAR(500)  NOT NULL        COMMENT '认领说明',
+    contact         VARCHAR(100)  NOT NULL        COMMENT '联系方式',
+    verification    VARCHAR(500)                  COMMENT '凭证信息（如描述物品特征）',
+    status          VARCHAR(20)   NOT NULL DEFAULT 'PENDING' COMMENT '认领状态：PENDING/APPROVED/REJECTED',
+    reviewer_id     BIGINT                        COMMENT '审核人ID',
+    review_note     VARCHAR(500)                  COMMENT '审核备注',
+    create_time     DATETIME      NOT NULL        COMMENT '申请时间',
+    update_time     DATETIME      NOT NULL        COMMENT '处理时间',
+    PRIMARY KEY (id),
+    FOREIGN KEY (lost_found_id) REFERENCES `lost_found`(id),
+    FOREIGN KEY (claimant_id) REFERENCES `user`(id),
+    FOREIGN KEY (reviewer_id) REFERENCES `user`(id),
+    INDEX idx_lost_found(lost_found_id),
+    INDEX idx_claimant(claimant_id),
+    INDEX idx_status(status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=UTF8MB4 COMMENT='失物认领申请表';
