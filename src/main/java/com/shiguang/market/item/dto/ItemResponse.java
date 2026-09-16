@@ -23,6 +23,12 @@ public class ItemResponse {
     @Schema(description = "用户ID")
     private Long userId;
 
+    @Schema(description = "发布者昵称")
+    private String publisherNickname;
+
+    @Schema(description = "发布者头像")
+    private String publisherAvatar;
+
     @Schema(description = "商品标题")
     private String title;
 

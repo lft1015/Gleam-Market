@@ -46,6 +46,8 @@ public interface ItemService {
      */
     IPage<ItemResponse> pageQuery(ItemQueryRequest request);
 
+    IPage<ItemResponse> pageByOwner(Long userId, ItemQueryRequest request);
+
     /**
      * 编辑商品
      *

@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
 /**
  * 商品控制器
@@ -40,6 +41,12 @@ public class ItemController {
         return Result.ok(itemService.pageQuery(request));
     }
 
+    @GetMapping("/my")
+    public Result<IPage<ItemResponse>> mine(ItemQueryRequest request) {
+        Long userId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return Result.ok(itemService.pageByOwner(userId, request));
+    }
+
     // 编辑商品
     @PutMapping("/{itemId}")
     public Result<Void> update(@PathVariable Long itemId,
@@ -53,7 +60,16 @@ public class ItemController {
     // 查看商品详情
     @GetMapping("/{itemId}")
     public Result<ItemResponse> getById(@PathVariable Long itemId) {
-        return Result.ok(itemService.get(itemId));
+        ItemResponse item = itemService.get(itemId);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean admin = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        boolean owner = auth != null && auth.getPrincipal() instanceof Long
+                && item.getUserId().equals((Long) auth.getPrincipal());
+        if (!owner && !admin && !java.util.Set.of("ON_SALE", "TRADING").contains(item.getStatus())) {
+            throw new com.shiguang.market.common.BusinessException(404, "商品不存在或尚未公开");
+        }
+        return Result.ok(item);
     }
 
     // 修改商品状态

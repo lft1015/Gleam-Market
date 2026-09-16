@@ -14,6 +14,8 @@ import com.shiguang.market.item.dto.UpdateItemRequest;
 import com.shiguang.market.item.entity.Item;
 import com.shiguang.market.item.mapper.ItemMapper;
 import com.shiguang.market.item.service.ItemService;
+import com.shiguang.market.user.entity.User;
+import com.shiguang.market.user.mapper.UserMapper;
 import com.shiguang.market.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,10 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -39,6 +45,7 @@ public class ItemServiceImpl implements ItemService {
     private final ItemMapper itemMapper;
     private final ReviewService reviewService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final UserMapper userMapper;
 
     /**
      * 发布商品
@@ -97,6 +104,7 @@ public class ItemServiceImpl implements ItemService {
 
         ItemResponse response = new ItemResponse();
         BeanUtil.copyProperties(item, response);
+        enrichPublisher(response);
         redisTemplate.opsForValue().set(cacheKey, response,
                 RedisKeyPrefix.ITEM_DETAIL_TTL_SECONDS, TimeUnit.SECONDS);
 
@@ -152,9 +160,20 @@ public class ItemServiceImpl implements ItemService {
         if (!item.getUserId().equals(userId)) {
             throw new BusinessException(403, "您没有权限更新商品状态");
         }
+        Map<String, Set<String>> transitions = Map.of(
+                ItemStatus.ON_SALE, Set.of(ItemStatus.TRADING, ItemStatus.SOLD, ItemStatus.OFF_SHELF),
+                ItemStatus.TRADING, Set.of(ItemStatus.ON_SALE, ItemStatus.SOLD, ItemStatus.OFF_SHELF),
+                ItemStatus.REJECTED, Set.of(ItemStatus.PENDING_REVIEW),
+                ItemStatus.OFF_SHELF, Set.of(ItemStatus.PENDING_REVIEW));
+        if (!transitions.getOrDefault(item.getStatus(), Set.of()).contains(status)) {
+            throw new BusinessException(400, "不允许从当前状态变更为目标状态");
+        }
         item.setStatus(status);
         item.setUpdateTime(LocalDateTime.now());
         itemMapper.updateById(item);
+        if (ItemStatus.PENDING_REVIEW.equals(status)) {
+            reviewService.createReview(userId, "ITEM", itemId);
+        }
         // 删除缓存，下次查询时重新加载
         redisTemplate.delete(RedisKeyPrefix.ITEM_DETAIL + itemId);
     }
@@ -170,7 +189,11 @@ public class ItemServiceImpl implements ItemService {
         Page<Item> page = new Page<>(request.getPage(), request.getSize());
         LambdaQueryWrapper<Item> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(StringUtils.hasText(request.getCategory()), Item::getCategory, request.getCategory());
-        wrapper.eq(StringUtils.hasText(request.getStatus()), Item::getStatus, request.getStatus());
+        if (StringUtils.hasText(request.getStatus()) && Set.of(ItemStatus.ON_SALE, ItemStatus.TRADING).contains(request.getStatus())) {
+            wrapper.eq(Item::getStatus, request.getStatus());
+        } else {
+            wrapper.in(Item::getStatus, ItemStatus.ON_SALE, ItemStatus.TRADING);
+        }
         wrapper.and(StringUtils.hasText(request.getKeyword()),
                 w -> w.like(Item::getTitle, request.getKeyword())
                       .or()
@@ -182,11 +205,13 @@ public class ItemServiceImpl implements ItemService {
         Page<Item> result = itemMapper.selectPage(page, wrapper);
 
         Page<ItemResponse> responsePage = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
-        responsePage.setRecords(result.getRecords().stream().map(item -> {
+        List<ItemResponse> responses = result.getRecords().stream().map(item -> {
             ItemResponse response = new ItemResponse();
             BeanUtil.copyProperties(item, response);
             return response;
-        }).toList());
+        }).toList();
+        enrichPublishers(responses);
+        responsePage.setRecords(responses);
 
         return responsePage;
     }
@@ -203,6 +228,10 @@ public class ItemServiceImpl implements ItemService {
         if (!item.getUserId().equals(userId)) {
             throw new BusinessException(403, "只能编辑自己的商品");
         }
+        if (ItemStatus.SOLD.equals(item.getStatus())) {
+            throw new BusinessException(400, "已售出商品不能编辑");
+        }
+        boolean createReview = !ItemStatus.PENDING_REVIEW.equals(item.getStatus());
         if (StringUtils.hasText(request.getTitle())) {
             item.setTitle(request.getTitle());
         }
@@ -221,9 +250,51 @@ public class ItemServiceImpl implements ItemService {
         if (request.getImages() != null) {
             item.setImages(request.getImages());
         }
+        item.setStatus(ItemStatus.PENDING_REVIEW);
         item.setUpdateTime(LocalDateTime.now());
         itemMapper.updateById(item);
+        if (createReview) reviewService.createReview(userId, "ITEM", itemId);
         // 删除缓存
         redisTemplate.delete(RedisKeyPrefix.ITEM_DETAIL + itemId);
+    }
+
+    @Override
+    public IPage<ItemResponse> pageByOwner(Long userId, ItemQueryRequest request) {
+        Page<Item> page = new Page<>(request.getPage(), request.getSize());
+        LambdaQueryWrapper<Item> wrapper = new LambdaQueryWrapper<Item>()
+                .eq(Item::getUserId, userId)
+                .eq(StringUtils.hasText(request.getStatus()), Item::getStatus, request.getStatus())
+                .orderByDesc(Item::getUpdateTime);
+        Page<Item> result = itemMapper.selectPage(page, wrapper);
+        Page<ItemResponse> response = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
+        response.setRecords(result.getRecords().stream().map(item -> {
+            ItemResponse value = new ItemResponse();
+            BeanUtil.copyProperties(item, value);
+            return value;
+        }).toList());
+        enrichPublishers(response.getRecords());
+        return response;
+    }
+
+    private void enrichPublisher(ItemResponse response) {
+        User user = userMapper.selectById(response.getUserId());
+        if (user != null) {
+            response.setPublisherNickname(user.getNickname());
+            response.setPublisherAvatar(user.getAvatar());
+        }
+    }
+
+    private void enrichPublishers(List<ItemResponse> responses) {
+        if (responses.isEmpty()) return;
+        List<Long> ids = responses.stream().map(ItemResponse::getUserId).distinct().toList();
+        Map<Long, User> users = userMapper.selectBatchIds(ids).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+        responses.forEach(response -> {
+            User user = users.get(response.getUserId());
+            if (user != null) {
+                response.setPublisherNickname(user.getNickname());
+                response.setPublisherAvatar(user.getAvatar());
+            }
+        });
     }
 }
