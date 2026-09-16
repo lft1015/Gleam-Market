@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.shiguang.market.lostfound.dto.LostFoundQueryRequest;
 import com.shiguang.market.lostfound.dto.LostFoundResponse;
 import com.shiguang.market.lostfound.dto.PublishLostFoundRequest;
+import com.shiguang.market.lostfound.dto.UpdateLostFoundRequest;
 
 /**
  * 失物招领服务接口
@@ -42,4 +43,8 @@ public interface LostFoundService {
      * @return 分页结果
      */
     IPage<LostFoundResponse> pageQuery(LostFoundQueryRequest request);
+
+    IPage<LostFoundResponse> pageByOwner(Long userId, LostFoundQueryRequest request);
+
+    void update(Long userId, Long id, UpdateLostFoundRequest request);
 }

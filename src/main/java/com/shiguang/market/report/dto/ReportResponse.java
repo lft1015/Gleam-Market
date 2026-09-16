@@ -28,6 +28,9 @@ public class ReportResponse {
     @Schema(description = "被举报对象ID")
     private Long targetId;
 
+    @Schema(description = "被举报对象展示名称")
+    private String targetLabel;
+
     @Schema(description = "举报原因")
     private String reason;
 

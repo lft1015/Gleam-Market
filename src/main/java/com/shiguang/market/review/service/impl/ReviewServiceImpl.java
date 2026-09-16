@@ -19,6 +19,7 @@ import com.shiguang.market.review.dto.ReviewResponse;
 import com.shiguang.market.review.entity.Review;
 import com.shiguang.market.review.mapper.ReviewMapper;
 import com.shiguang.market.review.service.ReviewService;
+import com.shiguang.market.admin.service.AuditLogger;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -38,6 +39,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final ItemMapper itemMapper;
     private final LostFoundMapper lostFoundMapper;
     private final NotificationProducer notificationProducer;
+    private final AuditLogger auditLogger;
 
     /**
      * 创建审核记录
@@ -71,6 +73,13 @@ public class ReviewServiceImpl implements ReviewService {
         responsePage.setRecords(result.getRecords().stream().map(r -> {
             ReviewResponse resp = new ReviewResponse();
             BeanUtil.copyProperties(r, resp);
+            if ("ITEM".equals(r.getTargetType())) {
+                Item item = itemMapper.selectById(r.getTargetId());
+                if (item != null) { resp.setTargetTitle(item.getTitle()); resp.setTargetStatus(item.getStatus()); }
+            } else if ("LOST_FOUND".equals(r.getTargetType())) {
+                LostFound record = lostFoundMapper.selectById(r.getTargetId());
+                if (record != null) { resp.setTargetTitle(record.getTitle()); resp.setTargetStatus(record.getStatus()); }
+            }
             return resp;
         }).toList());
         return responsePage;
@@ -91,6 +100,10 @@ public class ReviewServiceImpl implements ReviewService {
 
         String decision = request.getStatus();
 
+        if (!ReviewStatus.APPROVED.equals(decision) && !ReviewStatus.REJECTED.equals(decision)) {
+            throw new BusinessException(400, "审核结果只能是 APPROVED 或 REJECTED");
+        }
+
         if (ReviewStatus.APPROVED.equals(decision)) {
             approveTarget(review.getTargetType(), review.getTargetId());
         } else if (ReviewStatus.REJECTED.equals(decision)) {
@@ -102,6 +115,8 @@ public class ReviewServiceImpl implements ReviewService {
         review.setReviewNote(request.getReviewNote());
         review.setUpdateTime(LocalDateTime.now());
         reviewMapper.updateById(review);
+        auditLogger.log("DECIDE_REVIEW", review.getTargetType(), review.getTargetId(),
+                "审核结果：" + decision + (request.getReviewNote() == null ? "" : "，备注：" + request.getReviewNote()));
 
         // 异步通知提交人审核结果
         ReviewNotificationMessage notification = new ReviewNotificationMessage(

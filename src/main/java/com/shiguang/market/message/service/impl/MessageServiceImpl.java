@@ -13,6 +13,8 @@ import com.shiguang.market.message.mapper.MessageMapper;
 import com.shiguang.market.message.service.MessageService;
 import com.shiguang.market.user.entity.User;
 import com.shiguang.market.user.mapper.UserMapper;
+import com.shiguang.market.item.entity.Item;
+import com.shiguang.market.item.mapper.ItemMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +34,7 @@ public class MessageServiceImpl implements MessageService {
     private final MessageMapper messageMapper;
     private final ConversationMapper conversationMapper;
     private final UserMapper userMapper;
+    private final ItemMapper itemMapper;
 
     /**
      * 发送消息
@@ -43,6 +46,10 @@ public class MessageServiceImpl implements MessageService {
         if (userId.equals(request.getReceiverId())) {
             throw new BusinessException(400, "不能给自己发消息");
         }
+        User receiver = userMapper.selectById(request.getReceiverId());
+        Item item = itemMapper.selectById(request.getItemId());
+        if (receiver == null) throw new BusinessException(404, "接收者不存在");
+        if (item == null) throw new BusinessException(404, "关联商品不存在");
 
         Long user1 = userId < request.getReceiverId() ? userId : request.getReceiverId();
         Long user2 = userId < request.getReceiverId() ? request.getReceiverId() : userId;
@@ -109,6 +116,11 @@ public class MessageServiceImpl implements MessageService {
                 response.setOtherNickname(other.getNickname());
                 response.setOtherAvatar(other.getAvatar());
             }
+            Long unread = messageMapper.selectCount(new LambdaQueryWrapper<Message>()
+                    .eq(Message::getConversationId, c.getId())
+                    .eq(Message::getReceiverId, userId)
+                    .eq(Message::getIsRead, false));
+            response.setUnreadCount(unread.intValue());
             return response;
         }).toList();
     }

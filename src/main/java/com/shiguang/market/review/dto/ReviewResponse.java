@@ -24,6 +24,12 @@ public class ReviewResponse {
     @Schema(description = "被审核对象ID")
     private Long targetId;
 
+    @Schema(description = "被审核内容标题")
+    private String targetTitle;
+
+    @Schema(description = "被审核内容当前状态")
+    private String targetStatus;
+
     @Schema(description = "提交人ID")
     private Long submitterId;
 
