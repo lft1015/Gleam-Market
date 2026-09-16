@@ -56,7 +56,7 @@ services:
     ports:
       - "${APP_PORT:-8080}:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-gleam_market}?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8mb4&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-gleam_market}?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&connectionCollation=utf8mb4_unicode_ci
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-liao2004}
       SPRING_DATA_REDIS_HOST: redis
@@ -66,7 +66,13 @@ services:
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-gleam}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-gleam-market}
       APP_RABBITMQ_ENABLED: "true"
+      APP_UPLOAD_DIRECTORY: /app/uploads
+      APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:-}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
+      APP_ADMIN_NICKNAME: ${APP_ADMIN_NICKNAME:-平台管理员}
       TZ: Asia/Shanghai
+    volumes:
+      - upload-data:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -79,3 +85,4 @@ volumes:
   mysql-data:
   redis-data:
   rabbitmq-data:
+  upload-data:
