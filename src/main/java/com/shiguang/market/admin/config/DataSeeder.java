@@ -10,6 +10,7 @@ import com.shiguang.market.lostfound.mapper.LostFoundMapper;
 import com.shiguang.market.user.entity.User;
 import com.shiguang.market.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
@@ -18,9 +19,8 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 @Order(2)
@@ -40,19 +40,25 @@ public class DataSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        seedUsers();
-        seedItems();
-        seedLostFoundItems();
-        seedAnnouncements();
+        log.info("[DataSeeder] 开始执行测试数据播种...");
+        try {
+            seedUsers();
+            seedItems();
+            seedLostFoundItems();
+            seedAnnouncements();
+            log.info("[DataSeeder] 测试数据播种完成");
+        } catch (Exception e) {
+            log.error("[DataSeeder] 测试数据播种异常", e);
+        }
     }
 
     private void seedUsers() {
-        List<Long> userIds = new ArrayList<>();
+        int created = 0;
         for (int i = 0; i < TEST_USERNAMES.length; i++) {
             String uname = TEST_USERNAMES[i];
             User exist = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, uname));
             if (exist != null) {
-                userIds.add(exist.getId());
+                log.info("[DataSeeder] 用户 {} 已存在，跳过", uname);
                 continue;
             }
             User user = new User();
@@ -66,12 +72,16 @@ public class DataSeeder implements ApplicationRunner {
             user.setCreateTime(LocalDateTime.now());
             user.setUpdateTime(LocalDateTime.now());
             userMapper.insert(user);
-            userIds.add(user.getId());
+            created++;
         }
+        log.info("[DataSeeder] 播种 {} 个测试用户", created);
     }
 
     private void seedItems() {
-        if (itemMapper.selectCount(null) > 0) return;
+        if (itemMapper.selectCount(null) > 0) {
+            log.info("[DataSeeder] 商品已存在，跳过播种");
+            return;
+        }
 
         LocalDateTime now = LocalDateTime.now();
         Long userId1 = getUserId(TEST_USERNAMES[0]);
@@ -81,37 +91,37 @@ public class DataSeeder implements ApplicationRunner {
         Item item1 = buildItem(userId1, "九成新机械键盘 Cherry MX 青轴",
                 "自用 Cherry MX Board 3.0S 机械键盘，青轴，使用不到半年，按键灵敏无坏轴，包装齐全。",
                 new BigDecimal("299.00"), new BigDecimal("599.00"), "数码电子",
-                "ACTIVE", now.minusDays(3));
+                "ON_SALE", now.minusDays(3));
 
         Item item2 = buildItem(userId1, "《算法导论》第三版 几乎全新",
                 "计算机经典教材，买来只看了一章，几乎全新无笔记，送电子版习题答案。",
                 new BigDecimal("45.00"), new BigDecimal("128.00"), "图书教材",
-                "ACTIVE", now.minusDays(5));
+                "ON_SALE", now.minusDays(5));
 
         Item item3 = buildItem(userId2, "宿舍用小冰箱 50L 静音节能",
                 "50L 小型冰箱，适合宿舍使用，一级能效，运行安静，制冷效果好，毕业转让。",
                 new BigDecimal("199.00"), new BigDecimal("399.00"), "生活用品",
-                "ACTIVE", now.minusDays(2));
+                "ON_SALE", now.minusDays(2));
 
         Item item4 = buildItem(userId2, "Nike Air Force 1 白色 42码 仅试穿",
                 "正品 Nike AF1 纯白，42码，买大半码仅试穿一次，鞋盒吊牌齐全。",
                 new BigDecimal("399.00"), new BigDecimal("799.00"), "服饰鞋包",
-                "ACTIVE", now.minusDays(7));
+                "ON_SALE", now.minusDays(7));
 
         Item item5 = buildItem(userId3, "尤尼克斯羽毛球拍 纳米速攻系列",
                 "Yonex 纳米速攻系列球拍，已拉线 24 磅，附带原装拍套，成色 85 新。",
                 new BigDecimal("150.00"), new BigDecimal("380.00"), "运动户外",
-                "ACTIVE", now.minusDays(4));
+                "ON_SALE", now.minusDays(4));
 
         Item item6 = buildItem(userId3, "国誉活页笔记本套装 B5 全新未拆",
                 "Kokuyo 国誉活页本 B5 尺寸，内含 100 页替芯，全新未拆封，多色可选。",
                 new BigDecimal("25.00"), new BigDecimal("49.00"), "文具办公",
-                "ACTIVE", now.minusDays(1));
+                "ON_SALE", now.minusDays(1));
 
         Item item7 = buildItem(userId1, "小米充电宝 20000mAh 快充版",
                 "小米移动电源 20000mAh，支持 22.5W 快充，Type-C 双向快充，循环次数少。",
                 new BigDecimal("69.00"), new BigDecimal("149.00"), "其他",
-                "ACTIVE", now.minusDays(6));
+                "ON_SALE", now.minusDays(6));
 
         itemMapper.insert(item1);
         itemMapper.insert(item2);
@@ -120,10 +130,14 @@ public class DataSeeder implements ApplicationRunner {
         itemMapper.insert(item5);
         itemMapper.insert(item6);
         itemMapper.insert(item7);
+        log.info("[DataSeeder] 播种 7 个示例商品");
     }
 
     private void seedLostFoundItems() {
-        if (lostFoundMapper.selectCount(null) > 0) return;
+        if (lostFoundMapper.selectCount(null) > 0) {
+            log.info("[DataSeeder] 失物招领已存在，跳过播种");
+            return;
+        }
 
         LocalDateTime now = LocalDateTime.now();
         Long userId1 = getUserId(TEST_USERNAMES[0]);
@@ -137,7 +151,7 @@ public class DataSeeder implements ApplicationRunner {
         lf1.setLocation("图书馆三楼自习区");
         lf1.setLostTime(now.minusDays(3));
         lf1.setContact("QQ: 1234567890");
-        lf1.setStatus("OPEN");
+        lf1.setStatus("PENDING");
         lf1.setCreateTime(now.minusDays(3));
         lf1.setUpdateTime(now.minusDays(3));
 
@@ -149,7 +163,7 @@ public class DataSeeder implements ApplicationRunner {
         lf2.setLocation("食堂二楼");
         lf2.setLostTime(now.minusDays(1));
         lf2.setContact("微信: xiaohong_wx");
-        lf2.setStatus("OPEN");
+        lf2.setStatus("PENDING");
         lf2.setCreateTime(now.minusDays(1));
         lf2.setUpdateTime(now.minusDays(1));
 
@@ -161,17 +175,21 @@ public class DataSeeder implements ApplicationRunner {
         lf3.setLocation("教学楼 B 区");
         lf3.setLostTime(now.minusDays(2));
         lf3.setContact("电话: 13800000001");
-        lf3.setStatus("OPEN");
+        lf3.setStatus("PENDING");
         lf3.setCreateTime(now.minusDays(2));
         lf3.setUpdateTime(now.minusDays(2));
 
         lostFoundMapper.insert(lf1);
         lostFoundMapper.insert(lf2);
         lostFoundMapper.insert(lf3);
+        log.info("[DataSeeder] 播种 3 条失物招领");
     }
 
     private void seedAnnouncements() {
-        if (announcementMapper.selectCount(null) > 0) return;
+        if (announcementMapper.selectCount(null) > 0) {
+            log.info("[DataSeeder] 公告已存在，跳过播种");
+            return;
+        }
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -199,6 +217,7 @@ public class DataSeeder implements ApplicationRunner {
         announcementMapper.insert(a1);
         announcementMapper.insert(a2);
         announcementMapper.insert(a3);
+        log.info("[DataSeeder] 播种 3 条公告");
     }
 
     private Item buildItem(Long userId, String title, String description,
