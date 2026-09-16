@@ -3,6 +3,8 @@ package com.shiguang.market.admin.config;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shiguang.market.admin.entity.Announcement;
 import com.shiguang.market.admin.mapper.AnnouncementMapper;
+import com.shiguang.market.claim.entity.Claim;
+import com.shiguang.market.claim.mapper.ClaimMapper;
 import com.shiguang.market.item.entity.Item;
 import com.shiguang.market.item.mapper.ItemMapper;
 import com.shiguang.market.lostfound.entity.LostFound;
@@ -31,12 +33,14 @@ public class DataSeeder implements ApplicationRunner {
     private final PasswordEncoder passwordEncoder;
     private final LostFoundMapper lostFoundMapper;
     private final AnnouncementMapper announcementMapper;
+    private final ClaimMapper claimMapper;
 
-    private static final String[] TEST_USERNAMES = {"testuser1", "testuser2", "testuser3"};
+    private static final String[] TEST_USERNAMES = {"testuser1", "testadmin", "testsuperadmin"};
     private static final String TEST_PASSWORD = "123456";
-    private static final String[] NICKNAMES = {"小明", "小红", "小刚"};
+    private static final String[] NICKNAMES = {"小明（普通用户）", "小红（管理员）", "小刚（超管）"};
     private static final String[] PHONES = {"13800000001", "13800000002", "13800000003"};
     private static final String[] EMAILS = {"test1@gleam.com", "test2@gleam.com", "test3@gleam.com"};
+    private static final String[] ROLES = {"USER", "ADMIN", "SUPER_ADMIN"};
 
     @Override
     public void run(ApplicationArguments args) {
@@ -45,6 +49,7 @@ public class DataSeeder implements ApplicationRunner {
             seedUsers();
             seedItems();
             seedLostFoundItems();
+            seedClaims();
             seedAnnouncements();
             log.info("[DataSeeder] 测试数据播种完成");
         } catch (Exception e) {
@@ -67,7 +72,7 @@ public class DataSeeder implements ApplicationRunner {
             user.setNickname(NICKNAMES[i]);
             user.setPhone(PHONES[i]);
             user.setEmail(EMAILS[i]);
-            user.setRole("USER");
+            user.setRole(ROLES[i]);
             user.setStatus("ACTIVE");
             user.setCreateTime(LocalDateTime.now());
             user.setUpdateTime(LocalDateTime.now());
@@ -143,46 +148,137 @@ public class DataSeeder implements ApplicationRunner {
         Long userId1 = getUserId(TEST_USERNAMES[0]);
         Long userId2 = getUserId(TEST_USERNAMES[1]);
 
-        LostFound lf1 = new LostFound();
-        lf1.setUserId(userId1);
-        lf1.setTitle("寻找黑色双肩包 图书馆三楼遗忘");
-        lf1.setDescription("6月15日下午在图书馆三楼自习区遗忘一个黑色瑞士军刀双肩包，内有教材和文具，捡到请联系。");
-        lf1.setType("LOST");
-        lf1.setLocation("图书馆三楼自习区");
-        lf1.setLostTime(now.minusDays(3));
-        lf1.setContact("QQ: 1234567890");
-        lf1.setStatus("PENDING");
-        lf1.setCreateTime(now.minusDays(3));
-        lf1.setUpdateTime(now.minusDays(3));
+        // 待处理 - 寻物
+        lostFoundMapper.insert(buildLostFound(userId1,
+                "寻找黑色双肩包 图书馆三楼遗忘",
+                "6月15日下午在图书馆三楼自习区遗忘一个黑色瑞士军刀双肩包，内有教材和文具，捡到请联系。",
+                "LOST", "图书馆三楼自习区", now.minusDays(3),
+                "QQ: 1234567890", "PENDING"));
 
-        LostFound lf2 = new LostFound();
-        lf2.setUserId(userId2);
-        lf2.setTitle("捡到白色 AirPods 充电盒");
-        lf2.setDescription("在食堂二楼捡到一个白色 AirPods 充电盒（不含耳机），请失主联系确认后归还。");
-        lf2.setType("FOUND");
-        lf2.setLocation("食堂二楼");
-        lf2.setLostTime(now.minusDays(1));
-        lf2.setContact("微信: xiaohong_wx");
-        lf2.setStatus("PENDING");
-        lf2.setCreateTime(now.minusDays(1));
-        lf2.setUpdateTime(now.minusDays(1));
+        // 待处理 - 招领
+        lostFoundMapper.insert(buildLostFound(userId2,
+                "捡到白色 AirPods 充电盒",
+                "在食堂二楼捡到一个白色 AirPods 充电盒（不含耳机），请失主联系确认后归还。",
+                "FOUND", "食堂二楼", now.minusDays(1),
+                "微信: xiaohong_wx", "PENDING"));
 
-        LostFound lf3 = new LostFound();
-        lf3.setUserId(userId1);
-        lf3.setTitle("丢失校园卡 学号 2021XXXXXX");
-        lf3.setDescription("在教学楼 B 区附近丢失校园卡一张，卡号后四位 8823，捡到请联系，非常感谢！");
-        lf3.setType("LOST");
-        lf3.setLocation("教学楼 B 区");
-        lf3.setLostTime(now.minusDays(2));
-        lf3.setContact("电话: 13800000001");
-        lf3.setStatus("PENDING");
-        lf3.setCreateTime(now.minusDays(2));
-        lf3.setUpdateTime(now.minusDays(2));
+        // 待处理 - 寻物
+        lostFoundMapper.insert(buildLostFound(userId1,
+                "丢失校园卡 学号 2021XXXXXX",
+                "在教学楼 B 区附近丢失校园卡一张，卡号后四位 8823，捡到请联系，非常感谢！",
+                "LOST", "教学楼 B 区", now.minusDays(2),
+                "电话: 13800000001", "PENDING"));
 
-        lostFoundMapper.insert(lf1);
-        lostFoundMapper.insert(lf2);
-        lostFoundMapper.insert(lf3);
-        log.info("[DataSeeder] 播种 3 条失物招领");
+        // 处理中 - 寻物
+        lostFoundMapper.insert(buildLostFound(userId2,
+                "丢失 Kindle Paperwhite 电子书阅读器",
+                "上周五在图书馆四楼阅览室忘记带走一台 Kindle Paperwhite 第四代，黑色皮质保护套，内有大量专业书籍。",
+                "LOST", "图书馆四楼阅览室", now.minusDays(7),
+                "QQ: 9876543210", "PROCESSING"));
+
+        // 处理中 - 招领
+        lostFoundMapper.insert(buildLostFound(userId1,
+                "捡到一串钥匙 带 U 盘",
+                "在教学楼 A 区走廊捡到一串钥匙，上面挂有一个 32GB 金士顿 U 盘和一个小熊挂件。",
+                "FOUND", "教学楼 A 区走廊", now.minusDays(4),
+                "微信: xiaoming_wx", "PROCESSING"));
+
+        // 已找回/已归还
+        lostFoundMapper.insert(buildLostFound(userId2,
+                "丢失水杯 蓝色保温杯 500ml",
+                "在田径场看台遗忘一个蓝色膳魔师保温杯 500ml，已找回，感谢捡到的同学！",
+                "LOST", "田径场看台", now.minusDays(10),
+                "电话: 13800000002", "FOUND"));
+
+        // 已关闭
+        lostFoundMapper.insert(buildLostFound(userId1,
+                "寻找灰色折叠伞 天堂牌",
+                "下雨天在食堂门口拿错了一把灰色天堂折叠伞，自己的那把被他人拿走，已放弃寻找。",
+                "LOST", "食堂门口", now.minusDays(14),
+                "QQ: 111222333", "CLOSED"));
+
+        log.info("[DataSeeder] 播种 7 条失物招领（含多状态）");
+    }
+
+    private LostFound buildLostFound(Long userId, String title, String description,
+                                      String type, String location, LocalDateTime lostTime,
+                                      String contact, String status) {
+        LostFound lf = new LostFound();
+        lf.setUserId(userId);
+        lf.setTitle(title);
+        lf.setDescription(description);
+        lf.setType(type);
+        lf.setLocation(location);
+        lf.setLostTime(lostTime);
+        lf.setContact(contact);
+        lf.setStatus(status);
+        lf.setCreateTime(LocalDateTime.now());
+        lf.setUpdateTime(LocalDateTime.now());
+        return lf;
+    }
+
+    private void seedClaims() {
+        if (claimMapper.selectCount(null) > 0) {
+            log.info("[DataSeeder] 认领记录已存在，跳过播种");
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // 获取失物招领 ID（按标题查）
+        LostFound airpods = lostFoundMapper.selectOne(new LambdaQueryWrapper<LostFound>()
+                .eq(LostFound::getTitle, "捡到白色 AirPods 充电盒"));
+        LostFound keys = lostFoundMapper.selectOne(new LambdaQueryWrapper<LostFound>()
+                .eq(LostFound::getTitle, "捡到一串钥匙 带 U 盘"));
+        LostFound kindle = lostFoundMapper.selectOne(new LambdaQueryWrapper<LostFound>()
+                .eq(LostFound::getTitle, "丢失 Kindle Paperwhite 电子书阅读器"));
+
+        Long userId1 = getUserId(TEST_USERNAMES[0]);
+        Long userId2 = getUserId(TEST_USERNAMES[1]);
+
+        // 认领 AirPods - 待审核
+        if (airpods != null) {
+            Claim c1 = new Claim();
+            c1.setLostFoundId(airpods.getId());
+            c1.setClaimantId(userId1);
+            c1.setMessage("我的 AirPods 充电盒，背面有一道小划痕，可以拍照片确认。");
+            c1.setContact("电话: 13800000001");
+            c1.setVerification("可提供购买记录和序列号");
+            c1.setStatus("PENDING_REVIEW");
+            c1.setCreateTime(now.minusHours(12));
+            c1.setUpdateTime(now.minusHours(12));
+            claimMapper.insert(c1);
+        }
+
+        // 认领钥匙 - 已通过
+        if (keys != null) {
+            Claim c2 = new Claim();
+            c2.setLostFoundId(keys.getId());
+            c2.setClaimantId(userId2);
+            c2.setMessage("那串钥匙是我的，U 盘里有我的课程作业文件，挂件是女朋友送的生日礼物。");
+            c2.setContact("微信: xiaohong_wx");
+            c2.setVerification("可当场说出 U 盘内文件内容");
+            c2.setStatus("APPROVED");
+            c2.setCreateTime(now.minusDays(3));
+            c2.setUpdateTime(now.minusDays(2));
+            claimMapper.insert(c2);
+        }
+
+        // 认领 Kindle - 已拒绝
+        if (kindle != null) {
+            Claim c3 = new Claim();
+            c3.setLostFoundId(kindle.getId());
+            c3.setClaimantId(userId1);
+            c3.setMessage("我的 Kindle 是 Paperwhite 第四代，黑色保护套，里面有一本《深入理解计算机系统》的电子书。");
+            c3.setContact("QQ: 1234567890");
+            c3.setVerification("无法提供购买凭证");
+            c3.setStatus("REJECTED");
+            c3.setCreateTime(now.minusDays(5));
+            c3.setUpdateTime(now.minusDays(4));
+            claimMapper.insert(c3);
+        }
+
+        log.info("[DataSeeder] 播种 3 条认领记录（待审核/已通过/已拒绝）");
     }
 
     private void seedAnnouncements() {
