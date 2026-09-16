@@ -7,7 +7,9 @@
 
 ## 项目简介
 
-  拾光集市是一个功能完整的校园/社区二手交易与失物招领 **后端服务平台**，涵盖用户认证、商品发布审核、收藏私信、举报管理、管理员仪表盘等全链路业务。采用 **Spring Boot 3 + MyBatis-Plus** 构建，集成 **Redis 缓存 + RabbitMQ 异步消息**，支持 **Docker Compose 一键部署**。
+拾光集市是一个功能完整的校园/社区二手交易与失物招领 **后端服务平台**，涵盖用户认证、商品发布审核、收藏私信、举报管理、管理员仪表盘等全链路业务。采用 **Spring Boot 3 + MyBatis-Plus** 构建，集成 **Redis 缓存 + RabbitMQ 异步消息**，支持 **Docker Compose 一键部署**。
+
+启动后自动初始化管理员账号和全量测试数据，开箱即用。
 
 ## 技术栈
 
@@ -59,7 +61,7 @@ src/main/java/com/shiguang/market/
 
 ### 失物招领
 - **发布**：失物 / 招领信息（含图片 + 地点 + 时间 + 联系人）
-- **状态管理**：`待审核 → 进行中 → 已找回 → 已归还 → 已关闭` / `已拒绝`
+- **状态管理**：`待审核 → 进行中 → 处理中 → 已找回 → 已归还 → 已关闭` / `已拒绝`
 - **认领**：提交认领申请 → 管理员审批（通过 / 拒绝）
 - **筛选查询**：类型 / 关键字 / 地点 / 时间范围
 
@@ -76,19 +78,19 @@ src/main/java/com/shiguang/market/
 
 ### 收藏 & 举报
 - **收藏**：添加 / 取消 / 检查状态 / 计数 / 分页列表
-- **举报**：提交举报（含原因 + 风险等级）→ 管理员处理 → MQ 通知举报人
+- **举报**：提交举报（含原因 + 风险等级 `LOW/MEDIUM/HIGH`）→ 管理员处理 → MQ 通知举报人
 
 ### 管理员
 - **仪表盘**：用户总数 / 商品总数 / 订单总数 / 举报总数
-- **用户管理**：列表查询 / 状态变更（ACTIVE / WARNED / MUTED / BANNED）
+- **用户管理**：列表查询 / 状态变更（`ACTIVE` / `WARNED` / `MUTED` / `BANNED`）
 - **审核管理**：审核列表 / 审核决定
 - **公告管理**：发布 / 编辑 / 删除 / 公开列表
 - **分类管理**：分类 CRUD
-- **状态拦截**：用户状态过滤器自动拦截禁言/封禁用户请求
+- **状态拦截**：`UserStatusFilter` 自动拦截禁言/封禁用户的非公开请求
 
 ## 数据库设计
 
-共 **11 张核心表**：
+共 **12 张核心表**：
 
 | 表名 | 说明 |
 |------|------|
@@ -161,72 +163,182 @@ src/main/java/com/shiguang/market/
 
 ## RabbitMQ 消息设计
 
-| 场景 | 交换机 | 路由键 | 死信队列 |
+| 场景 | 交换机 | 路由键 | 重试策略 |
 |------|--------|--------|----------|
-| 审核通知 | `gleam.notification.exchange` | `gleam.review` | `gleam.dead>3 次重试` |
-| 举报通知 | `gleam.notification.exchange` | `gleam.report` | `gleam.dead>3 次重试` |
+| 审核通知 | `gleam.notification.exchange` | `gleam.review` | 3 次（3s → 6s → 12s）→ 死信队列 |
+| 举报通知 | `gleam.notification.exchange` | `gleam.report` | 3 次（3s → 6s → 12s）→ 死信队列 |
 
-> 重试策略：3 次（3s → 6s → 12s），最终落入死信队列兜底
+> 死信队列 `gleam.dead` 兜底所有处理失败的消息。
 
-## 快速开始
+---
+
+## 部署
 
 ### 前置要求
 
-- Docker & Docker Compose
-- JDK 17+ (本地开发)
+| 依赖 | 最低版本 |
+|------|----------|
+| Docker | 20.10+ |
+| Docker Compose | 2.0+ |
+| Git | 任意版本 |
 
-### Docker 一键部署（推荐）
+> 无需本地安装 JDK / MySQL / Redis / RabbitMQ，全都由 Docker 提供。
+
+### 一键部署
 
 ```bash
-git clone https://github.com/your-username/gleam-market.git
+# 1. 克隆项目
+git clone https://github.com/lft1015/Gleam-Market.git
 cd gleam-market
+
+# 2. 配置环境变量（可选，不配置则使用默认值）
+cp .env.example .env
+# 编辑 .env 修改密码等敏感信息
+
+# 3. 启动全部服务
 docker compose up -d --build
 ```
 
-首次启动会自动：
-1. 拉取 **MySQL 8 + Redis 7 + RabbitMQ 3.12** 镜像
-2. 初始化数据库（自动执行 `Gleam_market.sql` 建表）
-3. Maven 编译打包 Spring Boot 应用
-4. 按依赖顺序启动所有服务
+### 启动流程
 
-启动后访问：
+Docker Compose 会按依赖顺序自动启动以下 5 个容器：
 
-| 服务 | 地址 | 凭据 |
+| 容器 | 服务 | 端口 | 依赖 | 说明 |
+|------|------|------|------|------|
+| `gleam-mysql` | MySQL 8.0 | - | - | 首次启动自动执行 `Gleam_market.sql` 建表 |
+| `gleam-redis` | Redis 7 | - | - | 缓存 + 浏览量计数 |
+| `gleam-rabbitmq` | RabbitMQ 3.12 | 15672 | - | 异步通知 + 管理界面 |
+| `gleam-upload-init` | 初始化 | - | - | 创建上传目录（一次性任务） |
+| `gleam-app` | Spring Boot | 8080 | 以上全部 | 后端 API 服务，启动后自动播种测试数据 |
+
+> MySQL / Redis 端口默认不暴露到宿主机，仅容器间通信，更安全。
+
+### 环境变量
+
+在 `.env` 文件中配置（键 = `.env.example` 中定义的变量）：
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `APP_PORT` | `8080` | 应用对外的 HTTP 端口 |
+| `MYSQL_DATABASE` | `gleam_market` | 数据库名 |
+| `MYSQL_ROOT_PASSWORD` | `liao2004` | MySQL root 密码，**生产必须修改** |
+| `RABBITMQ_MANAGEMENT_PORT` | `15672` | RabbitMQ 管理界面端口 |
+| `RABBITMQ_USER` | `gleam` | RabbitMQ 用户名 |
+| `RABBITMQ_PASSWORD` | `gleam-market` | RabbitMQ 密码，**生产必须修改** |
+| `APP_ADMIN_USERNAME` | `admin` | 自动创建的管理员用户名 |
+| `APP_ADMIN_PASSWORD` | `admin123` | 自动创建的管理员密码，**生产必须修改** |
+| `APP_ADMIN_NICKNAME` | `平台管理员` | 管理员昵称 |
+
+### 验证部署
+
+```bash
+# 查看全部容器状态（都应显示 healthy 或 Up）
+docker compose ps
+
+# 查看应用日志（出现 Started GleamMarketApplication 即启动成功）
+docker compose logs -f app
+
+# 测试 API
+curl http://localhost:8080/api/v1/items?page=1&size=5
+curl http://localhost:8080/api/v1/admin/dashboard -H "Authorization: Bearer <token>"
+```
+
+### 启动后访问
+
+| 服务 | 地址 | 用户 | 密码 |
+|------|------|------|------|
+| API 文档 (Knife4j) | http://localhost:8080/api/v1/doc.html | - | - |
+| RabbitMQ 管理界面 | http://localhost:15672 | `gleam` | `gleam-market` |
+
+### 自动初始化的数据
+
+启动后 `AdminBootstrap` 和 `DataSeeder` 会自动播种：
+
+| 数据 | 数量 | 说明 |
 |------|------|------|
-| API 文档 (Knife4j) | http://localhost:8080/api/v1/doc.html | - |
-| RabbitMQ 管理界面 | http://localhost:15672 | guest / guest |
+| 管理员账号 | 1 | `APP_ADMIN_USERNAME` / `APP_ADMIN_PASSWORD` 指定的管理员 |
+| 测试用户 | 3 | `testuser` / `testadmin` / `testsuperadmin`（密码均为 `gugu`） |
+| 商品 | 13 | 覆盖 ON_SALE ×7 / DRAFT / PENDING_REVIEW / REJECTED / TRADING / SOLD / OFF_SHELF |
+| 失物招领 | 11 | 覆盖 PENDING ×3 / PENDING_REVIEW / REJECTED / IN_PROGRESS / PROCESSING ×2 / FOUND / RETURNED / CLOSED |
+| 认领记录 | 3 | PENDING / APPROVED / REJECTED |
+| 举报记录 | 5 | 含 LOW / MEDIUM / HIGH 三级风险 |
+| 审核记录 | 6 | ITEM ×3 + LOST_FOUND ×3 |
+| 私信会话 | 2 | 含 9 条消息（已读 + 未读） |
+| 收藏记录 | 6 | 3 个用户的收藏 |
+| 公告 | 4 | 3 条有效 + 1 条已过期 |
 
-### 本地开发
+### 本地开发部署
 
-1. 确保本地已安装并启动 **MySQL 8**、**Redis**、**RabbitMQ**
+适用于需要断点调试或修改源码的场景：
 
-2. 导入数据库：
 ```bash
-mysql -u root -p < resource/sql/Gleam_market.sql
+# 1. 只启动中间件（MySQL / Redis / RabbitMQ）
+docker compose up -d mysql redis rabbitmq
+
+# 2. 确认中间件就绪
+docker compose ps
+
+# 3. IDEA 中运行 GleamMarketApplication.main()
+#    或执行：./mvnw spring-boot:run
+
+# 4. 停止全部服务
+docker compose down
 ```
 
-3. 修改 `application.yml` 中的数据库密码等连接信息
+> 本地开发时需修改 `application.yml` 中的 Redis/MySQL/RabbitMQ 主机地址为 `localhost`。
 
-4. 启动项目：
+### 常用运维命令
+
 ```bash
-./mvnw spring-boot:run
+# 查看日志
+docker compose logs -f app                  # 应用日志
+docker compose logs -f mysql                # 数据库日志
+
+# 重启单个服务
+docker compose restart app
+
+# 停止全部服务
+docker compose down
+
+# 停止并清除所有数据（数据库 + Redis + RabbitMQ 数据全部删除）
+docker compose down -v
+
+# 重新构建并启动（源码修改后）
+docker compose up -d --build
+
+# 进入 MySQL 命令行
+docker exec -it gleam-mysql mysql -uroot -p
+
+# 进入 Redis 命令行
+docker exec -it gleam-redis redis-cli
 ```
+
+### 生产部署建议
+
+1. **修改所有默认密码**：编辑 `.env` 修改 `MYSQL_ROOT_PASSWORD`、`RABBITMQ_PASSWORD`、`APP_ADMIN_PASSWORD`
+2. **关闭 API 文档**：在 `application.yml` 中设置 Knife4j `enable: false`
+3. **配置 HTTPS**：前端部署 Nginx + SSL 证书，反向代理到后端 8080 端口
+4. **数据持久化**：Docker Volume 自动持久化，建议额外配置定期数据库备份
+5. **日志收集**：将日志挂载到宿主机或接入 ELK / Loki 等日志平台
+
+---
 
 ## 安全设计
 
 - **认证**：JWT Token，24h 有效期，退出时写入 Redis 黑名单
-- **授权**：Spring Security 角色控制（`USER` / `ADMIN`）
+- **授权**：Spring Security 角色控制（`USER` / `ADMIN` / `SUPER_ADMIN`）
 - **密码**：BCrypt 加密存储
 - **状态拦截**：`UserStatusFilter` 自动拦截禁言/封禁用户的非公开请求
 - **统一异常**：`GlobalExceptionHandler` 全局异常捕获，统一返回格式
 
 ## 项目亮点
 
-1. **完整业务闭环**：发布 → 审核 → 上架 → 交易 → 评价，失物 → 认领 → 归还
+1. **完整业务闭环**：发布 → 审核 → 上架 → 交易 → 收藏/私信，失物 → 认领 → 归还
 2. **缓存策略**：Redis 缓存 + 空值防穿透 + 浏览量异步计数批量同步
 3. **消息驱动**：RabbitMQ 异步通知 + 死信队列 + 指数退避重试
-4. **Docker 化**：Dockerfile 多阶段构建 + Compose 一键编排全部依赖
-5. **代码规范**：Controller → Service → Mapper 标准三层架构，状态常量化
+4. **容器化部署**：Dockerfile 多阶段构建 + Compose 一键编排全部依赖
+5. **开箱即用**：启动后自动建表 + 创建管理员 + 播种全量测试数据
+6. **代码规范**：Controller → Service → Mapper 标准三层架构，状态常量化
 
 ## License
 
