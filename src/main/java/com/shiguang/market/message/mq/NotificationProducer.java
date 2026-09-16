@@ -3,9 +3,9 @@ package com.shiguang.market.message.mq;
 import com.shiguang.market.config.RabbitMQConfig;
 import com.shiguang.market.message.mq.dto.ReportNotificationMessage;
 import com.shiguang.market.message.mq.dto.ReviewNotificationMessage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,10 +15,14 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "app.rabbitmq", name = "enabled", havingValue = "true")
 public class NotificationProducer {
 
     private final RabbitTemplate rabbitTemplate;
+
+    public NotificationProducer(RabbitTemplate rabbitTemplate) {
+        this.rabbitTemplate = rabbitTemplate;
+    }
 
     /**
      * 发送审核结果通知

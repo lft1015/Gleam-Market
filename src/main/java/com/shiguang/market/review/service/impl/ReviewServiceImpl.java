@@ -19,7 +19,7 @@ import com.shiguang.market.review.dto.ReviewResponse;
 import com.shiguang.market.review.entity.Review;
 import com.shiguang.market.review.mapper.ReviewMapper;
 import com.shiguang.market.review.service.ReviewService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -31,13 +31,22 @@ import java.time.LocalDateTime;
  * @author gugu
  */
 @Service
-@RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
 
     private final ReviewMapper reviewMapper;
     private final ItemMapper itemMapper;
     private final LostFoundMapper lostFoundMapper;
     private final NotificationProducer notificationProducer;
+
+    public ReviewServiceImpl(ReviewMapper reviewMapper,
+                             ItemMapper itemMapper,
+                             LostFoundMapper lostFoundMapper,
+                             @Autowired(required = false) NotificationProducer notificationProducer) {
+        this.reviewMapper = reviewMapper;
+        this.itemMapper = itemMapper;
+        this.lostFoundMapper = lostFoundMapper;
+        this.notificationProducer = notificationProducer;
+    }
 
     /**
      * 创建审核记录
@@ -104,13 +113,15 @@ public class ReviewServiceImpl implements ReviewService {
         reviewMapper.updateById(review);
 
         // 异步通知提交人审核结果
-        ReviewNotificationMessage notification = new ReviewNotificationMessage(
-                review.getSubmitterId(),
-                decision,
-                review.getTargetType(),
-                review.getTargetId(),
-                request.getReviewNote());
-        notificationProducer.sendReviewNotification(notification);
+        if (notificationProducer != null) {
+            ReviewNotificationMessage notification = new ReviewNotificationMessage(
+                    review.getSubmitterId(),
+                    decision,
+                    review.getTargetType(),
+                    review.getTargetId(),
+                    request.getReviewNote());
+            notificationProducer.sendReviewNotification(notification);
+        }
     }
 
     /**

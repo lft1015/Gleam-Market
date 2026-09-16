@@ -14,7 +14,7 @@ import com.shiguang.market.report.dto.SubmitReportRequest;
 import com.shiguang.market.report.entity.Report;
 import com.shiguang.market.report.mapper.ReportMapper;
 import com.shiguang.market.report.service.ReportService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -27,11 +27,16 @@ import java.time.LocalDateTime;
  */
 
 @Service
-@RequiredArgsConstructor
 public class ReportServiceImpl implements ReportService {
 
     private final ReportMapper reportMapper;
     private final NotificationProducer notificationProducer;
+
+    public ReportServiceImpl(ReportMapper reportMapper,
+                             @Autowired(required = false) NotificationProducer notificationProducer) {
+        this.reportMapper = reportMapper;
+        this.notificationProducer = notificationProducer;
+    }
 
     /**
      * 提交举报
@@ -92,13 +97,15 @@ public class ReportServiceImpl implements ReportService {
         reportMapper.updateById(report);
 
         // 异步通知举报人处理结果
-        ReportNotificationMessage notification = new ReportNotificationMessage(
-                report.getReporterId(),
-                request.getStatus(),
-                report.getTargetType(),
-                report.getTargetId(),
-                request.getReviewNote());
-        notificationProducer.sendReportNotification(notification);
+        if (notificationProducer != null) {
+            ReportNotificationMessage notification = new ReportNotificationMessage(
+                    report.getReporterId(),
+                    request.getStatus(),
+                    report.getTargetType(),
+                    report.getTargetId(),
+                    request.getReviewNote());
+            notificationProducer.sendReportNotification(notification);
+        }
     }
 
     /**

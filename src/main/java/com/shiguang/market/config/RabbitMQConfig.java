@@ -5,6 +5,7 @@ import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -14,6 +15,7 @@ import org.springframework.context.annotation.Configuration;
  * @author gugu
  */
 @Configuration
+@ConditionalOnProperty(prefix = "app.rabbitmq", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class RabbitMQConfig {
 
     /** 通知交换机 */
