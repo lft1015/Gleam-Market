@@ -40,6 +40,10 @@ public class UserAdminResponse {
     private String status;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Schema(description = "封禁截止时间")
+    private LocalDateTime banUntil;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Schema(description = "注册时间")
     private LocalDateTime createTime;
 }

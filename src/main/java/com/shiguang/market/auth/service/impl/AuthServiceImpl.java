@@ -84,6 +84,18 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(401, "用户名或密码错误");
         }
 
+        if ("BANNED".equals(user.getStatus())) {
+            if (user.getBanUntil() != null && user.getBanUntil().isBefore(LocalDateTime.now())) {
+                user.setStatus("ACTIVE");
+                user.setBanUntil(null);
+                user.setUpdateTime(LocalDateTime.now());
+                userMapper.updateById(user);
+            } else {
+                throw new BusinessException(403, user.getBanUntil() == null
+                        ? "账号已被永久封禁" : "账号已被封禁，解封时间：" + user.getBanUntil());
+            }
+        }
+
         // 3. 生成 Token + 返回
         String token = jwtUtils.generateToken(user.getId(), user.getRole());
         LoginResponse response = new LoginResponse();

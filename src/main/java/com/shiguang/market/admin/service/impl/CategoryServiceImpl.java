@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shiguang.market.admin.entity.Category;
 import com.shiguang.market.admin.mapper.CategoryMapper;
 import com.shiguang.market.admin.service.CategoryService;
+import com.shiguang.market.admin.service.AuditLogger;
 import com.shiguang.market.common.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import java.util.List;
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryMapper categoryMapper;
+    private final AuditLogger auditLogger;
 
     /**
      * 查询所有分类
@@ -53,6 +55,7 @@ public class CategoryServiceImpl implements CategoryService {
         category.setCreateTime(LocalDateTime.now());
         category.setUpdateTime(LocalDateTime.now());
         categoryMapper.insert(category);
+        auditLogger.log("CREATE_CATEGORY", "CATEGORY", category.getId(), "创建分类：" + name);
     }
 
     /**
@@ -79,6 +82,7 @@ public class CategoryServiceImpl implements CategoryService {
         category.setSortOrder(sortOrder != null ? sortOrder : category.getSortOrder());
         category.setUpdateTime(LocalDateTime.now());
         categoryMapper.updateById(category);
+        auditLogger.log("UPDATE_CATEGORY", "CATEGORY", id, "更新分类：" + name);
     }
 
     /**
@@ -92,5 +96,6 @@ public class CategoryServiceImpl implements CategoryService {
             throw new BusinessException(404, "分类不存在");
         }
         categoryMapper.deleteById(id);
+        auditLogger.log("DELETE_CATEGORY", "CATEGORY", id, "删除分类");
     }
 }

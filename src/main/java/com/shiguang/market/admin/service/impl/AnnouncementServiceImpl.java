@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shiguang.market.admin.entity.Announcement;
 import com.shiguang.market.admin.mapper.AnnouncementMapper;
 import com.shiguang.market.admin.service.AnnouncementService;
+import com.shiguang.market.admin.service.AuditLogger;
 import com.shiguang.market.common.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 public class AnnouncementServiceImpl implements AnnouncementService {
 
     private final AnnouncementMapper announcementMapper;
+    private final AuditLogger auditLogger;
 
     /**
      * 分页查询公告
@@ -53,6 +55,7 @@ public class AnnouncementServiceImpl implements AnnouncementService {
         announcement.setCreateTime(LocalDateTime.now());
         announcement.setUpdateTime(LocalDateTime.now());
         announcementMapper.insert(announcement);
+        auditLogger.log("CREATE_ANNOUNCEMENT", "ANNOUNCEMENT", announcement.getId(), "创建公告：" + title);
     }
 
     /**
@@ -74,6 +77,7 @@ public class AnnouncementServiceImpl implements AnnouncementService {
         announcement.setIsActive(isActive);
         announcement.setUpdateTime(LocalDateTime.now());
         announcementMapper.updateById(announcement);
+        auditLogger.log("UPDATE_ANNOUNCEMENT", "ANNOUNCEMENT", id, "更新公告：" + title);
     }
 
     /**
@@ -87,6 +91,7 @@ public class AnnouncementServiceImpl implements AnnouncementService {
             throw new BusinessException(404, "公告不存在");
         }
         announcementMapper.deleteById(id);
+        auditLogger.log("DELETE_ANNOUNCEMENT", "ANNOUNCEMENT", id, "删除公告");
     }
 
     /**

@@ -57,7 +57,7 @@ public class UserStatusFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws IOException, ServletException {
         try {
-            String path = request.getRequestURI();
+            String path = request.getRequestURI().substring(request.getContextPath().length());
             for (String bypass : BYPASS_PATHS) {
                 if (path.startsWith(bypass)) {
                     filterChain.doFilter(request, response);

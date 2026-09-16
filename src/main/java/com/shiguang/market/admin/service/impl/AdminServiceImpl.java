@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 /**
  * 管理员服务实现类
@@ -92,6 +93,9 @@ public class AdminServiceImpl implements AdminService {
      */
     @Override
     public void updateUserStatus(Long adminId, Long userId, UserStatusRequest request) {
+        if (!Set.of("ACTIVE", "WARNED", "MUTED", "BANNED").contains(request.getStatus())) {
+            throw new BusinessException(400, "用户状态无效");
+        }
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new BusinessException(404, "用户不存在");
