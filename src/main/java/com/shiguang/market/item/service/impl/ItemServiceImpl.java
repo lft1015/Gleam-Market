@@ -88,9 +88,16 @@ public class ItemServiceImpl implements ItemService {
             if (RedisKeyPrefix.NULL_PLACEHOLDER.equals(cached)) {
                 throw new BusinessException(404, "商品不存在");
             }
-            // 异步增加浏览量到 Redis
+            // 增加浏览量到 Redis
             redisTemplate.opsForValue().increment(viewKey);
-            return (ItemResponse) cached;
+            ItemResponse response;
+            if (cached instanceof ItemResponse) {
+                response = (ItemResponse) cached;
+            } else {
+                response = BeanUtil.toBean(cached, ItemResponse.class);
+            }
+            mergeViewCount(response, viewKey);
+            return response;
         }
 
         Item item = itemMapper.selectById(itemId);
@@ -108,10 +115,28 @@ public class ItemServiceImpl implements ItemService {
         redisTemplate.opsForValue().set(cacheKey, response,
                 RedisKeyPrefix.ITEM_DETAIL_TTL_SECONDS, TimeUnit.SECONDS);
 
-        // 异步增加浏览量
+        // 增加浏览量到 Redis
         redisTemplate.opsForValue().increment(viewKey);
+        mergeViewCount(response, viewKey);
 
         return response;
+    }
+
+    /**
+     * 将 Redis 中的浏览量增量合并到响应中，实现实时展示
+     */
+    private void mergeViewCount(ItemResponse response, String viewKey) {
+        Object value = redisTemplate.opsForValue().get(viewKey);
+        if (value != null) {
+            try {
+                int increment = Integer.parseInt(value.toString());
+                if (increment > 0) {
+                    response.setViewCount(response.getViewCount() + increment);
+                }
+            } catch (NumberFormatException e) {
+                log.warn("浏览量解析失败 viewKey={}, value={}", viewKey, value);
+            }
+        }
     }
 
     /**
@@ -134,6 +159,7 @@ public class ItemServiceImpl implements ItemService {
                         if (item != null) {
                             item.setViewCount(item.getViewCount() + increment);
                             itemMapper.updateById(item);
+                            redisTemplate.delete(RedisKeyPrefix.ITEM_DETAIL + itemId);
                         }
                         redisTemplate.opsForValue().set(key, 0);
                     }
@@ -208,6 +234,7 @@ public class ItemServiceImpl implements ItemService {
         List<ItemResponse> responses = result.getRecords().stream().map(item -> {
             ItemResponse response = new ItemResponse();
             BeanUtil.copyProperties(item, response);
+            mergeViewCount(response, RedisKeyPrefix.ITEM_VIEW_COUNT + item.getId());
             return response;
         }).toList();
         enrichPublishers(responses);
