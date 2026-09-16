@@ -49,6 +49,14 @@ services:
       retries: 10
       start_period: 30s
 
+  upload-init:
+    image: docker.m.daocloud.io/library/alpine:3.20
+    container_name: gleam-upload-init
+    restart: "no"
+    command: ["sh", "-c", "mkdir -p /app/uploads && chown -R 100:101 /app/uploads"]
+    volumes:
+      - upload-data:/app/uploads
+
   app:
     build: .
     container_name: gleam-app
@@ -80,6 +88,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      upload-init:
+        condition: service_completed_successfully
 
 volumes:
   mysql-data:
