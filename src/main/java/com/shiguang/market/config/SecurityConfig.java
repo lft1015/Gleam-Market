@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -50,16 +51,16 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers(
-                            "/auth/**",    // 注册/登录/退出
+                            "/auth/**",
                             "/announcements",
                             "/announcements/**",
                             "/favorites/count/**",
-                            "/doc.html",    // knife4j文档页
-                            "/v3/api-docs/**",    // OpenApi 文档接口
-                            "/webjars/**"     // knife4j 静态文档接口
-                    ).permitAll()  // 公开接口，无需登录
-                    .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")  // 管理端需要管理员角色
-                    .anyRequest().authenticated()  // 其他请求需要登录
+                            "/doc.html", "/v3/api-docs/**", "/webjars/**", "/uploads/**"
+                    ).permitAll()
+                    .requestMatchers(HttpMethod.GET, "/items/my", "/lost-found/my").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/items/**", "/lost-found/**", "/categories").permitAll()
+                    .requestMatchers("/admin/**", "/reports/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                    .anyRequest().authenticated()
                 )
 
                 // 添加 JWT 认证过滤器，确保在 UsernamePasswordAuthenticationFilter 之前

@@ -2,6 +2,8 @@ package com.shiguang.market.common;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -19,15 +21,17 @@ public class GlobalExceptionHandler {
      * 处理BusinessException 业务异常
      */
     @ExceptionHandler(BusinessException.class)
-    public Result<?> handleBusinessException(BusinessException e) {
-        return Result.fail(e.getCode(), e.getMessage());
+    public ResponseEntity<Result<?>> handleBusinessException(BusinessException e) {
+        HttpStatus status = HttpStatus.resolve(e.getCode());
+        return ResponseEntity.status(status != null ? status : HttpStatus.BAD_REQUEST)
+                .body(Result.fail(e.getCode(), e.getMessage()));
     }
 
     /**
      * 处理参数校验失败异常（@Valid 触发的）
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Result<?> handleValidationException(MethodArgumentNotValidException e) {
+    public ResponseEntity<Result<?>> handleValidationException(MethodArgumentNotValidException e) {
         // 获取校验失败的所有错误信息
         String message = e.getBindingResult()   // 获取校验失败的所有错误信息
                 .getAllErrors()  // 获取所有错误信息
@@ -35,15 +39,16 @@ public class GlobalExceptionHandler {
                 .findFirst()   // 取第一条错误
                 .map(error -> error.getDefaultMessage())  // 拿到错误文案
                 .orElse("参数校验失败");   // 兜底
-        return Result.fail(400, message);
+        return ResponseEntity.badRequest().body(Result.fail(400, message));
     }
 
     /**
      * 处理其他所有未预期的异常（兜底）
      */
     @ExceptionHandler(Exception.class)
-    public Result<?> handleException(Exception e) {
+    public ResponseEntity<Result<?>> handleException(Exception e) {
         log.error("系统异常：", e);  // 打印完整堆栈，方便排查
-        return Result.fail(500, "服务器内部错误");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Result.fail(500, "服务器内部错误"));
     }
 }
