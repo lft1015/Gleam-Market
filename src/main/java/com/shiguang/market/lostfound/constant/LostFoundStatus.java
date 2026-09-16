@@ -14,18 +14,32 @@ public class LostFoundStatus {
      * 暂停
      */
     public static final String PENDING = "PENDING";
+
+    /**
+     * 审核拒绝
+     */
+    public static final String REJECTED = "REJECTED";
+
+    /**
+     * 进行中
+     */
+    public static final String IN_PROGRESS = "IN_PROGRESS";
+
     /**
      * 处理中
      */
-    public static final String IN_PROGRESS = "IN_PROGRESS";
+    public static final String PROCESSING = "PROCESSING";
+
     /**
-     * 已拒绝
+     * 已找回
      */
-    public static final String REJECTED = "REJECTED";
+    public static final String FOUND = "FOUND";
+
     /**
-     * 已解决
+     * 已归还
      */
-    public static final String RESOLVED = "RESOLVED";
+    public static final String RETURNED = "RETURNED";
+
     /**
      * 已关闭
      */

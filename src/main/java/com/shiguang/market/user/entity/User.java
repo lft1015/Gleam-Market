@@ -50,6 +50,10 @@ public class User implements Serializable {
     @Schema(description = "状态")
     private String status;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Schema(description = "封禁截止时间（NULL=永久封禁）")
+    private LocalDateTime banUntil;
+
     @Schema(description = "角色")
     private String role;
 

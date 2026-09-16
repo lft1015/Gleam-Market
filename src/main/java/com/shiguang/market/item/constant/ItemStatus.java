@@ -8,6 +8,11 @@ package com.shiguang.market.item.constant;
 public class ItemStatus {
 
     /**
+     * 草稿
+     */
+    public static final String DRAFT = "DRAFT";
+
+    /**
      * 待审核
      */
     public static final String PENDING_REVIEW = "PENDING_REVIEW";

@@ -1,11 +1,13 @@
 package com.shiguang.market.auth.filter;
 
 import com.shiguang.market.auth.util.JwtUtils;
+import com.shiguang.market.common.RedisKeyPrefix;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,6 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {         //�
 
     // 注入 JwtUtils 组件，构造器注入
     private final JwtUtils jwtUtils;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 处理每个请求
@@ -45,6 +48,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {         //�
 
         //Token有效 -> 设置认证信息
         if(StringUtils.hasText(token) && jwtUtils.validateToken(token)) {
+            if (isBlacklisted(token)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             // 从 Token 中提取用户 ID 和角色
             Long userId = jwtUtils.getUserIdFromToken(token);
             String role = jwtUtils.getRoleFromToken(token);
@@ -74,5 +82,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {         //�
             return header.substring(7); // 移除 "Bearer " 前缀
         }
         return null;
+    }
+
+    /**
+     * 检查 Token 是否在黑名单中
+     */
+    private boolean isBlacklisted(String token) {
+        return Boolean.TRUE.equals(
+                redisTemplate.hasKey(RedisKeyPrefix.TOKEN_BLACKLIST + token));
     }
 }

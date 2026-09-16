@@ -141,7 +141,6 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.shiguang.market.GleamMarketApplication</mainClass>
-                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>

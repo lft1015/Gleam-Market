@@ -7,13 +7,17 @@ import com.shiguang.market.auth.dto.RegisterRequest;
 import com.shiguang.market.auth.service.AuthService;
 import com.shiguang.market.auth.util.JwtUtils;
 import com.shiguang.market.common.BusinessException;
+import com.shiguang.market.common.RedisKeyPrefix;
 import com.shiguang.market.user.entity.User;
 import com.shiguang.market.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 认证服务实现类
@@ -28,6 +32,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 注册用户
@@ -91,11 +96,19 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * 退出登录
-     * TODO: 接入 Redis 后将当前 Token 加入黑名单
+     * 将当前 Token 加入 Redis 黑名单，TTL 设为 Token 剩余有效时间
      */
     @Override
-    public void logout() {
-        // 无状态 JWT：服务端不维护会话，前端删除 Token 即完成退出
-        // 后续接入 Redis 后可在此处将 Token 加入黑名单，实现主动失效
+    public void logout(String token) {
+        if (StringUtils.hasText(token)) {
+            long ttl = jwtUtils.getRemainingTtlSeconds(token);
+            if (ttl > 0) {
+                redisTemplate.opsForValue().set(
+                        RedisKeyPrefix.TOKEN_BLACKLIST + token,
+                        "1",
+                        ttl,
+                        TimeUnit.SECONDS);
+            }
+        }
     }
 }

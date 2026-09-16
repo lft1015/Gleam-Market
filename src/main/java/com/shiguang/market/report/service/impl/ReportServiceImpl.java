@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shiguang.market.common.BusinessException;
+import com.shiguang.market.message.mq.NotificationProducer;
+import com.shiguang.market.message.mq.dto.ReportNotificationMessage;
 import com.shiguang.market.report.constant.ReportStatus;
 import com.shiguang.market.report.dto.HandleReportRequest;
 import com.shiguang.market.report.dto.ReportResponse;
@@ -29,6 +31,7 @@ import java.time.LocalDateTime;
 public class ReportServiceImpl implements ReportService {
 
     private final ReportMapper reportMapper;
+    private final NotificationProducer notificationProducer;
 
     /**
      * 提交举报
@@ -87,8 +90,20 @@ public class ReportServiceImpl implements ReportService {
         report.setReviewNote(request.getReviewNote());
         report.setUpdateTime(LocalDateTime.now());
         reportMapper.updateById(report);
+
+        // 异步通知举报人处理结果
+        ReportNotificationMessage notification = new ReportNotificationMessage(
+                report.getReporterId(),
+                request.getStatus(),
+                report.getTargetType(),
+                report.getTargetId(),
+                request.getReviewNote());
+        notificationProducer.sendReportNotification(notification);
     }
 
+    /**
+     * 分页查询用户举报列表
+     */
     @Override
     public IPage<ReportResponse> getMyReports(Long userId, Integer pageNum, Integer pageSize) {
         Page<Report> page = new Page<>(pageNum, pageSize);

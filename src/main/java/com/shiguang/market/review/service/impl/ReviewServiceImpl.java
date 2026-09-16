@@ -11,6 +11,8 @@ import com.shiguang.market.item.mapper.ItemMapper;
 import com.shiguang.market.lostfound.constant.LostFoundStatus;
 import com.shiguang.market.lostfound.entity.LostFound;
 import com.shiguang.market.lostfound.mapper.LostFoundMapper;
+import com.shiguang.market.message.mq.NotificationProducer;
+import com.shiguang.market.message.mq.dto.ReviewNotificationMessage;
 import com.shiguang.market.review.constant.ReviewStatus;
 import com.shiguang.market.review.dto.ReviewDecisionRequest;
 import com.shiguang.market.review.dto.ReviewResponse;
@@ -23,6 +25,11 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 
+/**
+ * 商品审核服务实现类
+ *
+ * @author gugu
+ */
 @Service
 @RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
@@ -30,7 +37,11 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewMapper reviewMapper;
     private final ItemMapper itemMapper;
     private final LostFoundMapper lostFoundMapper;
+    private final NotificationProducer notificationProducer;
 
+    /**
+     * 创建审核记录
+     */
     @Override
     public void createReview(Long submitterId, String targetType, Long targetId) {
         Review review = new Review();
@@ -43,6 +54,9 @@ public class ReviewServiceImpl implements ReviewService {
         reviewMapper.insert(review);
     }
 
+    /**
+     * 分页查询审核列表（管理员）
+     */
     @Override
     public IPage<ReviewResponse> pageQuery(String status, Integer pageNum, Integer pageSize) {
         Page<Review> page = new Page<>(pageNum, pageSize);
@@ -62,6 +76,9 @@ public class ReviewServiceImpl implements ReviewService {
         return responsePage;
     }
 
+    /**
+     * 处理审核决定（通过/拒绝），同步更新商品/失物状态
+     */
     @Override
     public void decide(Long reviewerId, Long reviewId, ReviewDecisionRequest request) {
         Review review = reviewMapper.selectById(reviewId);
@@ -85,8 +102,20 @@ public class ReviewServiceImpl implements ReviewService {
         review.setReviewNote(request.getReviewNote());
         review.setUpdateTime(LocalDateTime.now());
         reviewMapper.updateById(review);
+
+        // 异步通知提交人审核结果
+        ReviewNotificationMessage notification = new ReviewNotificationMessage(
+                review.getSubmitterId(),
+                decision,
+                review.getTargetType(),
+                review.getTargetId(),
+                request.getReviewNote());
+        notificationProducer.sendReviewNotification(notification);
     }
 
+    /**
+     * 审核通过，更新商品/失物状态
+     */
     private void approveTarget(String targetType, Long targetId) {
         if ("ITEM".equals(targetType)) {
             Item item = itemMapper.selectById(targetId);
@@ -103,6 +132,9 @@ public class ReviewServiceImpl implements ReviewService {
         }
     }
 
+    /**
+     * 审核拒绝，更新商品/失物状态
+     */
     private void rejectTarget(String targetType, Long targetId) {
         if ("ITEM".equals(targetType)) {
             Item item = itemMapper.selectById(targetId);

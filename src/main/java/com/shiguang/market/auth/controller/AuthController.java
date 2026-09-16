@@ -5,8 +5,10 @@ import com.shiguang.market.auth.dto.LoginResponse;
 import com.shiguang.market.auth.dto.RegisterRequest;
 import com.shiguang.market.auth.service.AuthService;
 import com.shiguang.market.common.Result;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -51,8 +53,20 @@ public class AuthController {
      * 退出登录
      */
     @PostMapping("/logout")
-    public Result<Void> logout() {
-        authService.logout();
+    public Result<Void> logout(HttpServletRequest request) {
+        String token = extractToken(request);
+        authService.logout(token);
         return Result.ok();
+    }
+
+    /**
+     * 从请求头提取 Bearer Token
+     */
+    private String extractToken(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (StringUtils.hasText(header) && header.startsWith("Bearer ")) {
+            return header.substring(7);
+        }
+        return null;
     }
 }

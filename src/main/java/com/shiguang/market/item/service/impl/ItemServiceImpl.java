@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shiguang.market.common.BusinessException;
+import com.shiguang.market.common.RedisKeyPrefix;
 import com.shiguang.market.item.constant.ItemStatus;
 import com.shiguang.market.item.dto.ItemQueryRequest;
 import com.shiguang.market.item.dto.ItemResponse;
@@ -13,24 +14,31 @@ import com.shiguang.market.item.dto.UpdateItemRequest;
 import com.shiguang.market.item.entity.Item;
 import com.shiguang.market.item.mapper.ItemMapper;
 import com.shiguang.market.item.service.ItemService;
-import com.shiguang.market.config.review.service.ReviewService;
+import com.shiguang.market.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 商品服务实现类
  *
  * @author gugu
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
 
     private final ItemMapper itemMapper;
     private final ReviewService reviewService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 发布商品
@@ -58,20 +66,74 @@ public class ItemServiceImpl implements ItemService {
     }
 
     /**
-     * 获取商品详情
+     * 获取商品详情（带 Redis 缓存 + 浏览量递增）
      *
      * @param itemId 商品ID
      * @return 商品详情
      */
     @Override
     public ItemResponse get(Long itemId) {
+        String cacheKey = RedisKeyPrefix.ITEM_DETAIL + itemId;
+        String viewKey = RedisKeyPrefix.ITEM_VIEW_COUNT + itemId;
+
+        Object cached = redisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            if (RedisKeyPrefix.NULL_PLACEHOLDER.equals(cached)) {
+                throw new BusinessException(404, "商品不存在");
+            }
+            // 异步增加浏览量到 Redis
+            redisTemplate.opsForValue().increment(viewKey);
+            return (ItemResponse) cached;
+        }
+
         Item item = itemMapper.selectById(itemId);
         if (item == null) {
+            redisTemplate.opsForValue().set(cacheKey,
+                    RedisKeyPrefix.NULL_PLACEHOLDER,
+                    RedisKeyPrefix.NULL_TTL_SECONDS,
+                    TimeUnit.SECONDS);
             throw new BusinessException(404, "商品不存在");
         }
+
         ItemResponse response = new ItemResponse();
         BeanUtil.copyProperties(item, response);
+        redisTemplate.opsForValue().set(cacheKey, response,
+                RedisKeyPrefix.ITEM_DETAIL_TTL_SECONDS, TimeUnit.SECONDS);
+
+        // 异步增加浏览量
+        redisTemplate.opsForValue().increment(viewKey);
+
         return response;
+    }
+
+    /**
+     * 定时将 Redis 浏览量同步到数据库（每 5 分钟）
+     */
+    @Scheduled(fixedDelay = 300000)
+    public void syncViewCounts() {
+        Set<String> keys = redisTemplate.keys(RedisKeyPrefix.ITEM_VIEW_COUNT + "*");
+        if (keys == null || keys.isEmpty()) {
+            return;
+        }
+        for (String key : keys) {
+            try {
+                Long itemId = Long.parseLong(key.replace(RedisKeyPrefix.ITEM_VIEW_COUNT, ""));
+                Object value = redisTemplate.opsForValue().get(key);
+                if (value != null) {
+                    int increment = Integer.parseInt(value.toString());
+                    if (increment > 0) {
+                        Item item = itemMapper.selectById(itemId);
+                        if (item != null) {
+                            item.setViewCount(item.getViewCount() + increment);
+                            itemMapper.updateById(item);
+                        }
+                        redisTemplate.opsForValue().set(key, 0);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("同步浏览量失败：key={}, error={}", key, e.getMessage());
+            }
+        }
     }
 
     /**
@@ -93,6 +155,8 @@ public class ItemServiceImpl implements ItemService {
         item.setStatus(status);
         item.setUpdateTime(LocalDateTime.now());
         itemMapper.updateById(item);
+        // 删除缓存，下次查询时重新加载
+        redisTemplate.delete(RedisKeyPrefix.ITEM_DETAIL + itemId);
     }
 
     /**
@@ -159,5 +223,7 @@ public class ItemServiceImpl implements ItemService {
         }
         item.setUpdateTime(LocalDateTime.now());
         itemMapper.updateById(item);
+        // 删除缓存
+        redisTemplate.delete(RedisKeyPrefix.ITEM_DETAIL + itemId);
     }
 }

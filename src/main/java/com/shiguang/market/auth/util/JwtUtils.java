@@ -33,6 +33,21 @@ public class JwtUtils {
     private static final long EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000L;
 
     /**
+     * 获取 Token 剩余有效时间（秒）
+     * 用于 Redis 黑名单的 TTL 设置
+     */
+    public long getRemainingTtlSeconds(String token) {
+        try {
+            Claims claims = parseToken(token);
+            long expirationMs = claims.getExpiration().getTime();
+            long remainingMs = expirationMs - System.currentTimeMillis();
+            return Math.max(remainingMs / 1000, 0);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
      * 获取签名密钥
      * 每次签名和解析都用同一个 key，保证一致性
      */

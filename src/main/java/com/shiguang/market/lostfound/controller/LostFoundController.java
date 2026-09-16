@@ -1,6 +1,8 @@
 package com.shiguang.market.lostfound.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.shiguang.market.common.Result;
+import com.shiguang.market.lostfound.dto.LostFoundQueryRequest;
 import com.shiguang.market.lostfound.dto.LostFoundResponse;
 import com.shiguang.market.lostfound.dto.PublishLostFoundRequest;
 import com.shiguang.market.lostfound.service.LostFoundService;
@@ -20,6 +22,14 @@ import org.springframework.web.bind.annotation.*;
 public class LostFoundController {
 
     private final LostFoundService lostFoundService;
+
+    /**
+     * 分页查询失物招领列表
+     */
+    @GetMapping
+    public Result<IPage<LostFoundResponse>> list(LostFoundQueryRequest request) {
+        return Result.ok(lostFoundService.pageQuery(request));
+    }
 
     /**
      * 发布失物招领信息

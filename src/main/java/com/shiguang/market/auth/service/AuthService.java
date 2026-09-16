@@ -27,6 +27,7 @@ public interface AuthService {
 
     /**
      * 退出登录
+     * @param token JWT Token
      */
-    void logout();
+    void logout(String token);
 }

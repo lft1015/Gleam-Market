@@ -12,7 +12,7 @@ import com.shiguang.market.lostfound.dto.PublishLostFoundRequest;
 import com.shiguang.market.lostfound.entity.LostFound;
 import com.shiguang.market.lostfound.mapper.LostFoundMapper;
 import com.shiguang.market.lostfound.service.LostFoundService;
-import com.shiguang.market.config.review.service.ReviewService;
+import com.shiguang.market.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
